@@ -1,0 +1,20 @@
+# Build artifacts
+build/
+*.bin
+*.elf
+*.hex
+*.map
+.tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Agent working files
+.commandcode/
+_writetest.md
+.ohmyagent_test.tmp

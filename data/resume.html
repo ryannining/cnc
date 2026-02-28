@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Job Alignment</title>
+    <script src="gcodex.js"></script>
+    <script src="cncplanner.js"></script>
+    <style>
+        :root {
+            --bg: #1a1a1a;
+            --surface: #2d2d2d;
+            --accent: #00bcd4;
+            --success: #4caf50;
+            --danger: #f44336;
+            --text: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            min-height: 0;
+        }
+
+        .canvas-container {
+            flex: 2;
+            background-color: var(--surface);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #444;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        canvas:active {
+            cursor: grabbing;
+        }
+
+        .sidebar {
+            flex: 1;
+            background-color: var(--surface);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border: 1px solid #444;
+            overflow-y: auto;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+            transition: opacity 0.2s;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: #000;
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: #000;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: #fff;
+        }
+
+        .shape-list {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #222;
+        }
+
+        .shape-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .shape-item:hover {
+            background: #333;
+        }
+
+        .shape-item.active {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .shape-item.after-selected {
+            background: #3d5a5a;
+        }
+
+        #rangeInput {
+            background: #222;
+            border: 1px solid #444;
+            color: var(--text);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100px;
+        }
+
+        #rangeInput:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        #rangeInput.highlight-mode {
+            border-color: var(--accent);
+            box-shadow: 0 0 5px var(--accent);
+        }
+
+        #status {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .instructions {
+            font-size: 13px;
+            color: #888;
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+
+        .bounding-box-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(30, 30, 30, 0.95);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            padding: 12px 15px;
+            font-size: 12px;
+            z-index: 100;
+            min-width: 160px;
+        }
+
+        .bounding-box-info h4 {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+            color: var(--accent);
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+        }
+
+        .dim-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        .dim-label {
+            color: #888;
+        }
+
+        .dim-value {
+            font-family: 'Consolas', monospace;
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .dim-value.x {
+            color: #ff6b6b;
+        }
+
+        .dim-value.y {
+            color: #4ecdc4;
+        }
+
+        .zoom-indicator {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(30, 30, 30, 0.9);
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div>
+            <h2 style="margin:0">Resume Job Alignment</h2>
+            <div id="status">Loading job data...</div>
+            <div id="versionTag" style="font-size:12px;color:#00bcd4;margin-top:4px;"></div>
+        </div>
+        <div>
+            <button class="btn btn-primary" onclick="autoScaleView()" style="margin-right:10px">Auto Scale</button>
+            <button class="btn btn-danger" onclick="window.close()">Close</button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="canvas-container" id="canvasContainer">
+            <canvas id="resumeCanvas"></canvas>
+            <div class="bounding-box-info" id="bboxInfo" style="display:none;">
+                <h4>Bounding Box</h4>
+                <div class="dim-row">
+                    <span class="dim-label">Width (X):</span>
+                    <span class="dim-value x" id="bboxWidth">-</span>
+                </div>
+                <div class="dim-row">
+                    <span class="dim-label">Height (Y):</span>
+                    <span class="dim-value y" id="bboxHeight">-</span>
+                </div>
+                <div class="dim-row">
+                    <span class="dim-label">Min X:</span>
+                    <span class="dim-value" id="bboxMinX">-</span>
+                </div>
+                <div class="dim-row">
+                    <span class="dim-label">Max X:</span>
+                    <span class="dim-value" id="bboxMaxX">-</span>
+                </div>
+                <div class="dim-row">
+                    <span class="dim-label">Min Y:</span>
+                    <span class="dim-value" id="bboxMinY">-</span>
+                </div>
+                <div class="dim-row">
+                    <span class="dim-label">Max Y:</span>
+                    <span class="dim-value" id="bboxMaxY">-</span>
+                </div>
+                <div class="dim-row" style="margin-top:8px;border-top:1px solid #444;padding-top:8px">
+                    <span class="dim-label">Est. Time:</span>
+                    <span class="dim-value" id="bboxEstTime" style="color: var(--success);">-</span>
+                </div>
+            </div>
+            <div class="zoom-indicator" id="zoomIndicator">Zoom: 100%</div>
+        </div>
+        <div class="sidebar">
+            <h3 style="margin:0">Detected Shapes</h3>
+            <div class="shape-list" id="shapeList">
+                <!-- Shapes populated here -->
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button id="btnMove" class="btn btn-primary" disabled onclick="moveToSelectedShape()">Move Machine to
+                    Shape (XY Only)</button>
+                <button id="btnTest" class="btn btn-primary" disabled onclick="generateTestFile()">Generate Alignment
+                    Test File</button>
+
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label style="font-size: 13px;">Resume Range:</label>
+                    <input type="text" id="rangeInput" placeholder="e.g. 6- or 6-10" onfocus="onRangeFocus()"
+                        onblur="onRangeBlur()" oninput="onRangeInput()">
+                </div>
+
+                <button id="btnResume" class="btn btn-success" disabled onclick="generateResumeFile()">Generate & Upload
+                    Resume Job</button>
+            </div>
+
+            <div id="genPreviewWrap" style="display:none">
+                <strong style="font-size:13px;">Generated G-code:</strong>
+                <pre id="genPreviewText" style="background:#1a1a1a;border:1px solid #444;padding:8px;font-size:11px;max-height:180px;overflow:auto;margin-top:6px;"></pre>
+            </div>
+
+            <div class="instructions">
+                <strong>How to use:</strong><br>
+                1. Click a shape on the map or list.<br>
+                2. Use 'Move Machine' to position tool over the pattern.<br>
+                3. Jog manually if needed to match perfectly.<br>
+                4. 'Test File' runs only this shape starting at (0,0).<br>
+                5. 'Resume Range': e.g. "6-" = shape 6 onwards, "6-10" = shapes 6-10<br>
+                6. Once matched, 'Upload Resume' starts job from here at (0,0).<br>
+                <br>
+                <strong>Controls:</strong><br>
+                - Mouse drag to pan<br>
+                - Mouse wheel to zoom
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const RESUME_VERSION = 'v2.5 (spindle nyala saat alignment)';
+
+        function showGenPreview(text) {
+            document.getElementById('genPreviewText').textContent = text;
+            document.getElementById('genPreviewWrap').style.display = 'block';
+        }
+
+        const canvas = document.getElementById('resumeCanvas');
+        const ctx = canvas.getContext('2d');
+        document.getElementById('versionTag').textContent = 'Versi: ' + RESUME_VERSION;
+        let rawData = null;
+        let commands = [];
+        let detectedShapes = [];
+        let selectedShapeIdx = -1;
+        let jobFileName = '';
+        let ws = null;
+        let rangeStart = -1;
+        let rangeEnd = -1;
+        let isRangeInputFocused = false;
+
+        let lastMachineX = 0, lastMachineY = 0, lastMachineZ = 0;
+
+        // View state - pan & zoom
+        let zoom = 1;
+        let panX = 0;
+        let panY = 0;
+        let bounds = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+        let gridBounds = { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+
+        // Mouse interaction state
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        const GRID_SIZE = 10; // 10mm grid
+        const MARGIN_MM = 30; // margin in mm
+
+        const urlParams = new URLSearchParams(window.location.search);
+        jobFileName = urlParams.get('file');
+
+        if (!jobFileName) {
+            document.getElementById('status').textContent = 'Error: No file specified';
+        } else {
+            init();
+        }
+
+        async function init() {
+            initWebSocket();
+            await loadJob();
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            setupMouseControls();
+        }
+
+        function initWebSocket() {
+            ws = new WebSocket('ws://' + window.location.hostname + ':81/');
+            ws.onopen = () => console.log('WS Connected');
+            ws.binaryType = 'arraybuffer';
+            ws.onmessage = function (event) {
+                if (event.data instanceof ArrayBuffer) {
+                    const data = new Uint8Array(event.data);
+                    const view = new DataView(event.data);
+                    if (data[0] === 0x01) { // Position Broadcast
+                        let posCount = data[1];
+                        if (posCount > 0) {
+                            let idx = 2 + (posCount - 1) * 16;
+                            lastMachineX = view.getInt32(idx, true) / 100.00;
+                            lastMachineY = view.getInt32(idx + 4, true) / 100.00;
+                            lastMachineZ = view.getInt32(idx + 8, true) / 100.00;
+                        }
+                    }
+                }
+            };
+        }
+
+        async function loadJob() {
+            try {
+                document.getElementById('status').textContent = 'Fetching ' + jobFileName + '...';
+                const response = await fetch('/' + encodeURIComponent(jobFileName));
+                const buffer = await response.arrayBuffer();
+                rawData = new Uint8Array(buffer);
+
+                document.getElementById('status').textContent = 'Parsing...';
+                parseBinaryGX(rawData);
+
+                // Calculate estimated time
+                const gcodeText = decode(); // Convert GX to text G-code
+                if (gcodeText) {
+                    try {
+                        const config = await loadConfig2();
+                        if (config) {
+                            const result = CncPlanner.calculateJobTime(gcodeText, config);
+                            document.getElementById('bboxEstTime').textContent = result.formatted;
+                        }
+                    } catch (e) {
+                        console.error('Time calc error:', e);
+                    }
+                }
+
+                document.getElementById('status').textContent = `Parsed ${commands.length} commands, ${detectedShapes.length} shapes found.`;
+                renderShapeList();
+                calculateBounds();
+                centerView();
+                render();
+            } catch (err) {
+                document.getElementById('status').textContent = 'Error: ' + err.message;
+            }
+        }
+
+        function parseBinaryGX(data) {
+            compress = Array.from(data);
+            cpos = 3;
+
+            let curX = 0, curY = 0, curZ = 0; // sama seperti decode() gcodex.js (AZ=0)
+            let prevG = -1;
+            let currentToolPower = 0;
+            let currentF0 = 1000;
+            let currentF1 = 1000;
+            commands = [];
+            detectedShapes = [];
+
+            let shapeStartX = 0, shapeStartY = 0, shapeStartZ = 0;
+            let currentShapeG1s = [];
+
+            while (cpos < compress.length) {
+                let startPos = cpos;
+                let h = read(1);
+                if (h === null) break;
+
+                let isM = (h & 1);
+                let gType = (h >> 1) & 3;
+
+                let cmd = { h, startPos, type: isM ? 'M' : 'G', gType: isM ? -1 : gType, x: curX, y: curY, z: curZ, power: currentToolPower, f: 0 };
+
+                if (h & (1 << 3)) {
+                    let s = read(1);
+                    if (isM) {
+                        currentToolPower = s;
+                        cmd.power = s;
+                    } else {
+                        cmd.f = s * fScale;
+                        if (gType === 0) currentF0 = cmd.f;
+                        else if (gType === 1) currentF1 = cmd.f;
+                    }
+                }
+
+                if (h & (1 << 4)) {
+                    let val = read(xySize);
+                    curX += (val - xyLimit) / xyScale;
+                }
+                if (h & (1 << 5)) {
+                    let val = read(xySize);
+                    curY += (val - xyLimit) / xyScale;
+                }
+                if (h & (1 << 6)) {
+                    let val = read(zSize);
+                    curZ += (val - zLimit) / zScale;
+                }
+                if (h & (1 << 7)) read(eSize);
+
+                cmd.endX = curX;
+                cmd.endY = curY;
+                cmd.endZ = curZ;
+                commands.push(cmd);
+
+                if (!isM) {
+                    if (gType === 1 && prevG === 0) {
+                        shapeStartX = curX;
+                        shapeStartY = curY;
+                        shapeStartZ = curZ;
+                        currentShapeG1s = [];
+                    }
+                    if (gType === 1) {
+                        currentShapeG1s.push(commands.length - 1);
+                    } else if (gType === 0 && currentShapeG1s.length >= 4) {
+                        detectedShapes.push({
+                            index: detectedShapes.length,
+                            cmdIdx: currentShapeG1s[0],
+                            filePos: commands[currentShapeG1s[0]].startPos,
+                            x: shapeStartX,
+                            y: shapeStartY,
+                            z: shapeStartZ,
+                            power: currentToolPower,
+                            f0: currentF0,
+                            f1: currentF1
+                        });
+                        currentShapeG1s = [];
+                    } else if (gType === 0) {
+                        currentShapeG1s = [];
+                    }
+                    prevG = gType;
+                }
+            }
+
+            if (currentShapeG1s.length >= 4) {
+                detectedShapes.push({
+                    index: detectedShapes.length,
+                    cmdIdx: currentShapeG1s[0],
+                    filePos: commands[currentShapeG1s[0]].startPos,
+                    x: shapeStartX,
+                    y: shapeStartY,
+                    z: shapeStartZ,
+                    power: currentToolPower,
+                    f0: currentF0,
+                    f1: currentF1
+                });
+            }
+        }
+
+        function calculateBounds() {
+            if (commands.length === 0) return;
+            const workCommands = commands.filter(c => c.type === 'G' && c.gType === 1);
+            const targetCmds = workCommands.length > 0 ? workCommands : commands;
+
+            bounds.minX = Math.min(0, ...targetCmds.map(c => Math.min(c.x, c.endX)));
+            bounds.maxX = Math.max(0, ...targetCmds.map(c => Math.max(c.x, c.endX)));
+            bounds.minY = Math.min(0, ...targetCmds.map(c => Math.min(c.y, c.endY)));
+            bounds.maxY = Math.max(0, ...targetCmds.map(c => Math.max(c.y, c.endY)));
+
+            // Calculate grid bounds with margin
+            gridBounds.minX = Math.floor(bounds.minX / GRID_SIZE) * GRID_SIZE - MARGIN_MM;
+            gridBounds.maxX = Math.ceil(bounds.maxX / GRID_SIZE) * GRID_SIZE + MARGIN_MM;
+            gridBounds.minY = Math.floor(bounds.minY / GRID_SIZE) * GRID_SIZE - MARGIN_MM;
+            gridBounds.maxY = Math.ceil(bounds.maxY / GRID_SIZE) * GRID_SIZE + MARGIN_MM;
+
+            // Update bounding box info display
+            updateBoundingBoxInfo();
+        }
+
+        function updateBoundingBoxInfo() {
+            const width = bounds.maxX - bounds.minX;
+            const height = bounds.maxY - bounds.minY;
+
+            document.getElementById('bboxWidth').textContent = width.toFixed(2) + ' mm';
+            document.getElementById('bboxHeight').textContent = height.toFixed(2) + ' mm';
+            document.getElementById('bboxMinX').textContent = bounds.minX.toFixed(2);
+            document.getElementById('bboxMaxX').textContent = bounds.maxX.toFixed(2);
+            document.getElementById('bboxMinY').textContent = bounds.minY.toFixed(2);
+            document.getElementById('bboxMaxY').textContent = bounds.maxY.toFixed(2);
+            document.getElementById('bboxInfo').style.display = 'block';
+        }
+
+        function centerView() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const contentW = gridBounds.maxX - gridBounds.minX;
+            const contentH = gridBounds.maxY - gridBounds.minY;
+
+            zoom = Math.min(w / (contentW || 1), h / (contentH || 1)) * 0.85;
+            if (zoom > 100) zoom = 100;
+            if (zoom < 0.1) zoom = 0.1;
+
+            // Center the view
+            const centerX = (gridBounds.minX + gridBounds.maxX) / 2;
+            const centerY = (gridBounds.minY + gridBounds.maxY) / 2;
+
+            panX = w / 2 - centerX * zoom;
+            panY = h / 2 - centerY * zoom;
+
+            updateZoomIndicator();
+        }
+
+        function autoScaleView() {
+            centerView();
+            render();
+        }
+
+        function updateZoomIndicator() {
+            document.getElementById('zoomIndicator').textContent = 'Zoom: ' + Math.round(zoom * 100) + '%';
+        }
+
+        function toCanvas(x, y) {
+            return {
+                x: x * zoom + panX,
+                y: y * zoom + panY
+            };
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('canvasContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            render();
+        }
+
+        function setupMouseControls() {
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                canvas.style.cursor = 'grabbing';
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+
+                const deltaX = e.clientX - lastMouseX;
+                const deltaY = e.clientY - lastMouseY;
+
+                panX += deltaX;
+                panY += deltaY;
+
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+
+                render();
+            });
+
+            canvas.addEventListener('mouseup', () => {
+                isDragging = false;
+                canvas.style.cursor = 'grab';
+            });
+
+            canvas.addEventListener('mouseleave', () => {
+                isDragging = false;
+                canvas.style.cursor = 'grab';
+            });
+
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                const newZoom = zoom * zoomFactor;
+
+                // Limit zoom range
+                if (newZoom < 0.1 || newZoom > 100) return;
+
+                // Zoom toward mouse position
+                panX = mouseX - (mouseX - panX) * (newZoom / zoom);
+                panY = mouseY - (mouseY - panY) * (newZoom / zoom);
+                zoom = newZoom;
+
+                updateZoomIndicator();
+                render();
+            }, { passive: false });
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw background
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            drawGrid();
+
+            // Draw bounding box
+            drawBoundingBox();
+
+            // Draw dimension lines
+            drawDimensionLines();
+
+            const isRangeMode = isRangeInputFocused && rangeStart >= 0;
+            const maxShapeIdx = detectedShapes.length - 1;
+            const actualEnd = isRangeMode ? (rangeEnd >= 0 ? Math.min(rangeEnd, maxShapeIdx) : maxShapeIdx) : maxShapeIdx;
+
+            let startCmdIdx = 0;
+            let endCmdIdx = commands.length - 1;
+
+            if (selectedShapeIdx >= 0) {
+                startCmdIdx = detectedShapes[selectedShapeIdx].cmdIdx;
+                if (isRangeMode && rangeEnd >= 0 && rangeEnd < detectedShapes.length) {
+                    const endShape = detectedShapes[rangeEnd];
+                    endCmdIdx = endShape.cmdIdx;
+                    for (let i = endShape.cmdIdx; i < commands.length; i++) {
+                        if (commands[i].type === 'G' && commands[i].gType === 0) {
+                            endCmdIdx = i - 1;
+                            break;
+                        }
+                    }
+                } else if (isRangeMode) {
+                    for (let i = detectedShapes[selectedShapeIdx].cmdIdx; i < commands.length; i++) {
+                        if (commands[i].type === 'G' && commands[i].gType === 0) {
+                            endCmdIdx = i - 1;
+                            break;
+                        }
+                        endCmdIdx = i;
+                    }
+                }
+            }
+
+            // Draw tool path
+            commands.forEach((c, i) => {
+                const start = toCanvas(c.x, c.y);
+                const end = toCanvas(c.endX, c.endY);
+
+                const inRange = i >= startCmdIdx && i <= endCmdIdx;
+
+                ctx.beginPath();
+                if (c.type === 'G' && c.gType === 0) {
+                    ctx.strokeStyle = inRange ? '#00bcd4' : '#333';
+                    ctx.setLineDash([5, 5]);
+                } else {
+                    ctx.strokeStyle = inRange ? '#00bcd4' : '#666';
+                    ctx.setLineDash([]);
+                }
+                ctx.lineWidth = inRange ? 2 : 1;
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+                ctx.lineWidth = 1;
+            });
+            ctx.setLineDash([]);
+
+            // Draw shapes
+            detectedShapes.forEach((s, i) => {
+                const pos = toCanvas(s.x, s.y);
+
+                let isInRange = false;
+                if (isRangeMode) {
+                    isInRange = i >= rangeStart && i <= actualEnd;
+                } else if (selectedShapeIdx >= 0) {
+                    isInRange = i >= selectedShapeIdx;
+                }
+
+                const size = 5;
+                ctx.fillStyle = isInRange ? '#00bcd4' : '#4caf50';
+
+                if (isInRange) {
+                    ctx.beginPath();
+                    ctx.rect(pos.x - size, pos.y - size, size * 2, size * 2);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Draw selection highlight
+                if (selectedShapeIdx === i || (isRangeMode && i === rangeStart)) {
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 8, 0, Math.PI * 2);
+                    ctx.fillStyle = '#00bcd4';
+                    ctx.fill();
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.lineWidth = 1;
+                }
+
+                if (isRangeMode && i === actualEnd && actualEnd < maxShapeIdx) {
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.lineWidth = 1;
+                }
+
+                // Draw shape index
+                ctx.fillStyle = '#fff';
+                ctx.font = '10px Consolas';
+                ctx.textAlign = 'center';
+                ctx.fillText(i + 1, pos.x, pos.y - 12);
+            });
+
+            // Draw origin marker
+            drawOrigin();
+        }
+
+        function drawGrid() {
+            const startX = Math.floor(gridBounds.minX / GRID_SIZE) * GRID_SIZE;
+            const endX = Math.ceil(gridBounds.maxX / GRID_SIZE) * GRID_SIZE;
+            const startY = Math.floor(gridBounds.minY / GRID_SIZE) * GRID_SIZE;
+            const endY = Math.ceil(gridBounds.maxY / GRID_SIZE) * GRID_SIZE;
+
+            ctx.lineWidth = 0.5;
+
+            // Draw minor grid lines (every 10mm)
+            for (let x = startX; x <= endX; x += GRID_SIZE) {
+                const isMajor = x % 50 === 0;
+                ctx.strokeStyle = isMajor ? '#3a3a3a' : '#1a1a1a';
+                ctx.beginPath();
+                const start = toCanvas(x, startY);
+                const end = toCanvas(x, endY);
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+            }
+
+            for (let y = startY; y <= endY; y += GRID_SIZE) {
+                const isMajor = y % 50 === 0;
+                ctx.strokeStyle = isMajor ? '#3a3a3a' : '#1a1a1a';
+                ctx.beginPath();
+                const start = toCanvas(startX, y);
+                const end = toCanvas(endX, y);
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+            }
+
+            // Draw axis labels for major grid lines
+            ctx.fillStyle = '#666';
+            ctx.font = '10px Consolas';
+            ctx.textAlign = 'center';
+
+            for (let x = startX; x <= endX; x += 50) {
+                const pos = toCanvas(x, gridBounds.minY);
+                ctx.fillText(x.toString(), pos.x, pos.y + 15);
+            }
+
+            ctx.textAlign = 'left';
+            for (let y = startY; y <= endY; y += 50) {
+                const pos = toCanvas(gridBounds.minX, y);
+                ctx.fillText(y.toString(), pos.x + 5, pos.y + 4);
+            }
+        }
+
+        function drawBoundingBox() {
+            if (!bounds || bounds.minX === bounds.maxX) return;
+
+            const p1 = toCanvas(bounds.minX, bounds.minY);
+            const p2 = toCanvas(bounds.maxX, bounds.minY);
+            const p3 = toCanvas(bounds.maxX, bounds.maxY);
+            const p4 = toCanvas(bounds.minX, bounds.maxY);
+
+            ctx.strokeStyle = '#9b59b6';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([]);
+
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.lineTo(p3.x, p3.y);
+            ctx.lineTo(p4.x, p4.y);
+            ctx.closePath();
+            ctx.stroke();
+
+            ctx.lineWidth = 1;
+        }
+
+        function drawDimensionLines() {
+            if (!bounds || bounds.minX === bounds.maxX) return;
+
+            const offset = 15 / zoom * 10;
+            const { minX, maxX, minY, maxY } = bounds;
+
+            // X dimension (width) - bottom
+            const x1 = toCanvas(minX, minY - offset);
+            const x2 = toCanvas(maxX, minY - offset);
+            const xExt1 = toCanvas(minX, minY);
+            const xExt2 = toCanvas(maxX, minY);
+
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 0.5;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(xExt1.x, xExt1.y);
+            ctx.lineTo(x1.x, x1.y);
+            ctx.moveTo(xExt2.x, xExt2.y);
+            ctx.lineTo(x2.x, x2.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.strokeStyle = '#2ecc71';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(x1.x, x1.y);
+            ctx.lineTo(x2.x, x2.y);
+            ctx.stroke();
+
+            // Arrow heads for X dimension
+            drawArrow(ctx, x1.x, x1.y, x2.x, x2.y, '#2ecc71');
+
+            // X dimension text
+            const xText = toCanvas((minX + maxX) / 2, minY - offset);
+            const width = (maxX - minX).toFixed(2);
+            ctx.fillStyle = '#2ecc71';
+            ctx.font = 'bold 12px Consolas';
+            ctx.textAlign = 'center';
+            ctx.fillText(width + ' mm', xText.x, xText.y - 8);
+
+            // Y dimension (height) - right side
+            const y1 = toCanvas(maxX + offset, minY);
+            const y2 = toCanvas(maxX + offset, maxY);
+            const yExt1 = toCanvas(maxX, minY);
+            const yExt2 = toCanvas(maxX, maxY);
+
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 0.5;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(yExt1.x, yExt1.y);
+            ctx.lineTo(y1.x, y1.y);
+            ctx.moveTo(yExt2.x, yExt2.y);
+            ctx.lineTo(y2.x, y2.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.strokeStyle = '#4ecdc4';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(y1.x, y1.y);
+            ctx.lineTo(y2.x, y2.y);
+            ctx.stroke();
+
+            // Arrow heads for Y dimension
+            drawArrow(ctx, y1.x, y1.y, y2.x, y2.y, '#4ecdc4');
+
+            // Y dimension text
+            const yText = toCanvas(maxX + offset, (minY + maxY) / 2);
+            const height = (maxY - minY).toFixed(2);
+            ctx.fillStyle = '#4ecdc4';
+            ctx.font = 'bold 12px Consolas';
+            ctx.textAlign = 'left';
+            ctx.fillText(height + ' mm', yText.x + 10, yText.y + 4);
+        }
+
+        function drawArrow(ctx, fromX, fromY, toX, toY, color) {
+            const headLength = 8;
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 1.5;
+
+            // Arrow head at end
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(
+                toX - headLength * Math.cos(angle - Math.PI / 6),
+                toY - headLength * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.lineTo(
+                toX - headLength * Math.cos(angle + Math.PI / 6),
+                toY - headLength * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function drawOrigin() {
+            const origin = toCanvas(0, 0);
+            const size = 10;
+
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(origin.x - size, origin.y);
+            ctx.lineTo(origin.x + size, origin.y);
+            ctx.moveTo(origin.x, origin.y - size);
+            ctx.lineTo(origin.x, origin.y + size);
+            ctx.stroke();
+
+            ctx.fillStyle = '#ff6b6b';
+            ctx.font = 'bold 11px Consolas';
+            ctx.textAlign = 'left';
+            ctx.fillText('(0,0)', origin.x + 12, origin.y + 4);
+        }
+
+        function varColor(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+
+        function renderShapeList() {
+            const list = document.getElementById('shapeList');
+            list.innerHTML = '';
+            detectedShapes.forEach((s, i) => {
+                const div = document.createElement('div');
+                div.className = 'shape-item' + (selectedShapeIdx === i ? ' active' : '');
+                div.textContent = `Shape #${i + 1} (X:${s.x.toFixed(2)}, Y:${s.y.toFixed(2)}) P:${s.power} F0:${s.f0} F1:${s.f1}`;
+                div.onclick = () => selectShape(i);
+                list.appendChild(div);
+            });
+        }
+
+        function selectShape(idx) {
+            selectedShapeIdx = idx;
+            const rangeInput = document.getElementById('rangeInput');
+            rangeInput.value = (idx + 1) + '-';
+            rangeStart = idx;
+            rangeEnd = -1;
+            renderShapeList();
+            render();
+            document.getElementById('btnMove').disabled = false;
+            document.getElementById('btnTest').disabled = false;
+            document.getElementById('btnResume').disabled = false;
+        }
+
+        canvas.onclick = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mx = (e.clientX - rect.left) * scaleX;
+            const my = (e.clientY - rect.top) * scaleY;
+            let closestIdx = -1;
+            let minDist = 20;
+            detectedShapes.forEach((s, i) => {
+                const pos = toCanvas(s.x, s.y);
+                const d = Math.sqrt((pos.x - mx) ** 2 + (pos.y - my) ** 2);
+                if (d < minDist) {
+                    minDist = d;
+                    closestIdx = i;
+                }
+            });
+            if (closestIdx !== -1) selectShape(closestIdx);
+        };
+
+        function moveToSelectedShape() {
+            if (selectedShapeIdx === -1 || !ws || ws.readyState !== WebSocket.OPEN) return;
+            const s = detectedShapes[selectedShapeIdx];
+            const distX = s.x - lastMachineX;
+            const distY = s.y - lastMachineY;
+            const buffer = new ArrayBuffer(13);
+            const view = new DataView(buffer);
+            view.setUint8(0, 0x10);
+            view.setFloat32(1, distX, true);
+            view.setFloat32(5, distY, true);
+            view.setFloat32(9, 0, true);
+            ws.send(buffer);
+        }
+
+        // Rentang command milik shape (dari G1 pertama sampai sebelum G0 berikutnya)
+        function getShapeCmdRange(shapeIdx) {
+            const s = detectedShapes[shapeIdx];
+            const start = s.cmdIdx;
+            let end = commands.length - 1;
+            for (let i = start; i < commands.length; i++) {
+                if (commands[i].type === 'G' && commands[i].gType === 0) {
+                    end = i - 1;
+                    break;
+                }
+            }
+            return { s, start, end };
+        }
+
+        // Informasi kedalaman shape: cek apakah G1 pertama membawa Z asli.
+        // Kalau tidak, kembalikan kedalaman terendah ASLI (dari file) untuk
+        // sintesis turun — nilai Z tetap dari file, tidak pernah diubah.
+        function shapeDepthInfo(start, end) {
+            let firstG1 = null;
+            let minZ = Infinity;
+            for (let i = start; i <= end; i++) {
+                const c = commands[i];
+                if (c.type === 'G' && c.gType === 1) {
+                    if (!firstG1) firstG1 = c;
+                    if (c.endZ < minZ) minZ = c.endZ;
+                }
+            }
+            const hasZ = !!(firstG1 && (firstG1.h & (1 << 6)));
+            return { minZ: minZ === Infinity ? 0 : minZ, hasZ };
+        }
+
+        async function generateTestFile() {
+            if (selectedShapeIdx === -1) return;
+            const { s, start, end } = getShapeCmdRange(selectedShapeIdx);
+
+            // TEST = ALIGNMENT SAJA, bukan motong:
+            // - spindle TETAP NYALA (M3) supaya mata potong tidak nyangkut/patah
+            // - bergerak di Z aman (1) mengikuti contour XY shape
+            //   supaya kita bisa lihat apakah pola cocok dgn lembar terpotong
+            // - TIDAK plunge ke kedalaman (-6 dst).
+            let gcode = '';
+            gcode += `G0 Z5\n`;
+            if (s.power > 0) {
+                gcode += `M3 S${s.power}\n`;
+            }
+            gcode += `G0 X0 Y0\n`;
+            gcode += `G0 Z1\n`;
+            gcode += `G1 F${s.f1 * 60}\n`;
+            for (let i = start; i <= end; i++) {
+                const c = commands[i];
+                if (c.type === 'G') {
+                    const gStr = c.gType === 0 ? 'G0' : 'G1';
+                    gcode += `${gStr} X${(c.endX - s.x).toFixed(3)} Y${(c.endY - s.y).toFixed(3)}\n`;
+                }
+            }
+            gcode += `G0 Z10\n`;
+            gcode += `M5 S0\n`;
+            gcode += `G0 X0 Y0\nG0 Z0\n`;
+            showGenPreview(gcode);
+            await uploadFile('testResume.gcode', new Blob([encodeGCode(gcode)], { type: 'application/octet-stream' }));
+            alert('testResume.gcode uploaded (ALIGNMENT ONLY — spindle nyala, tidak memotong dalam).\n1. Tool bergerak di Z aman mengikuti contour.\n2. Geser/putar lembar sampai pola cocok dengan posisi tool.\n3. Klik "SET ZERO".\n4. Generate & jalankan resume.gcode untuk lanjut motong.');
+        }
+
+        async function generateResumeFile() {
+            if (selectedShapeIdx === -1) return;
+
+            const rangeInput = document.getElementById('rangeInput');
+            const parsed = parseRange(rangeInput.value, detectedShapes.length);
+
+            const startShapeIdx = parsed.start;
+            const endShapeIdx = parsed.end;
+
+            if (startShapeIdx < 0 || startShapeIdx >= detectedShapes.length) {
+                alert('Invalid start shape index');
+                return;
+            }
+
+            const startShape = detectedShapes[startShapeIdx];
+            const offsetX = startShape.x;
+            const offsetY = startShape.y;
+
+            let startCmdIdx = startShape.cmdIdx;
+            let endCmdIdx = commands.length - 1;
+
+            if (endShapeIdx >= 0 && endShapeIdx < detectedShapes.length) {
+                const endShape = detectedShapes[endShapeIdx];
+                let found = false;
+                for (let i = endShape.cmdIdx; i < commands.length; i++) {
+                    if (commands[i].type === 'G' && commands[i].gType === 0) {
+                        endCmdIdx = i - 1;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) endCmdIdx = commands.length - 1;
+            } else {
+                const lastShape = detectedShapes[detectedShapes.length - 1];
+                let found = false;
+                for (let i = lastShape.cmdIdx; i < commands.length; i++) {
+                    if (commands[i].type === 'G' && commands[i].gType === 0) {
+                        endCmdIdx = i - 1;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) endCmdIdx = commands.length - 1;
+            }
+
+            const dep = shapeDepthInfo(startCmdIdx, endCmdIdx);
+
+            let gcode = '';
+            gcode += `G0 Z5\n`;
+            if (startShape.power > 0) {
+                gcode += `M3 S${startShape.power}\n`;
+            }
+            gcode += `G0 X0 Y0\n`;
+            // Z asli TIDAK diubah. Hanya bila G1 pertama tidak membawa Z,
+            // sintesis turun ke kedalaman terendah ASLI (nilai dari file).
+            if (!dep.hasZ)
+                gcode += `G0 Z${dep.minZ.toFixed(3)}\n`;
+            gcode += `G1 F${startShape.f1 * 60}\n`;
+            for (let i = startCmdIdx; i <= endCmdIdx; i++) {
+                const c = commands[i];
+                if (c.type === 'G') {
+                    const gStr = c.gType === 0 ? 'G0' : 'G1';
+                    let line = `${gStr} X${(c.endX - offsetX).toFixed(3)} Y${(c.endY - offsetY).toFixed(3)}`;
+                    // Z ASLI dari file (tidak diubah), hanya bila baris membawa Z
+                    if (c.h & (1 << 6))
+                        line += ` Z${c.endZ.toFixed(3)}`;
+                    gcode += line + '\n';
+                }
+            }
+            gcode += `M5 S0\nG0 Z10\nG0 X0 Y0\nG0 Z0\n`;
+            showGenPreview(gcode);
+
+            await uploadFile('resume.gcode', new Blob([encodeGCode(gcode)], { type: 'application/octet-stream' }));
+
+            const rangeStr = endShapeIdx >= 0 ? `${startShapeIdx + 1}-${endShapeIdx + 1}` : `${startShapeIdx + 1}-`;
+            alert(`resume.gcode uploaded (shapes: ${rangeStr}).\n1. Physically align tool to pattern (permukaan bahan).\n2. Click "SET ZERO" on dashboard.\n3. Run resume.gcode.\nTool akan turun otomatis ke kedalaman potong lalu lanjut job.`);
+        }
+
+        function parseRange(value, maxShapes) {
+            value = value.trim();
+            if (!value) return { start: 0, end: -1 };
+
+            const match = value.match(/^(\d+)(?:-(\d*))?$/);
+            if (!match) return { start: -1, end: -1 };
+
+            const start = Math.max(0, parseInt(match[1]) - 1);
+            let end = -1;
+
+            if (match[2] !== undefined && match[2] !== '') {
+                end = Math.min(maxShapes - 1, parseInt(match[2]) - 1);
+            }
+
+            return { start, end };
+        }
+
+        function onRangeFocus() {
+            isRangeInputFocused = true;
+            document.getElementById('rangeInput').classList.add('highlight-mode');
+            parseRangeAndRender();
+            render();
+        }
+
+        function onRangeBlur() {
+            isRangeInputFocused = false;
+            document.getElementById('rangeInput').classList.remove('highlight-mode');
+            parseRangeAndRender();
+            render();
+        }
+
+        function onRangeInput() {
+            parseRangeAndRender();
+            render();
+        }
+
+        function parseRangeAndRender() {
+            const rangeInput = document.getElementById('rangeInput');
+            const parsed = parseRange(rangeInput.value, detectedShapes.length);
+            rangeStart = parsed.start;
+            rangeEnd = parsed.end;
+        }
+
+        async function uploadFile(filename, blob) {
+            const formData = new FormData();
+            formData.append('name', blob, filename);
+            await fetch('/upload', { method: 'POST', body: formData });
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,2190 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg: #121212;
+            --panel: #1e1e1e;
+            --text: #e0e0e0;
+            --accent: #3498db;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #c0392b;
+            --input-bg: #2a2a2a;
+            --border: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        @media (min-width: 1024px) {
+            body {
+                overflow: hidden;
+            }
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        @media (min-width: 1024px) {
+            .container {
+                max-width: 100%;
+                display: flex;
+                gap: 16px;
+                padding: 16px;
+                height: 100vh;
+            }
+
+            .left-panel {
+                flex: 1;
+                min-width: 0;
+                overflow-y: auto;
+                padding-right: 8px;
+            }
+
+            .right-panel {
+                flex: 1;
+                min-width: 0;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .right-panel .section {
+                flex: 1;
+                margin-bottom: 0;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .right-panel .canvas-wrapper {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                min-height: 0;
+            }
+
+            .right-panel .canvas-container {
+                flex: 1;
+                min-height: 0;
+            }
+
+            .right-panel #pathCanvas {
+                height: 100%;
+                min-height: 300px;
+                max-height: calc(100vh - 350px);
+            }
+
+            .right-panel .top-controls-bar {
+                flex-shrink: 0;
+            }
+
+            .right-panel .btn-group {
+                flex-shrink: 0;
+            }
+
+            .left-panel::-webkit-scrollbar,
+            .right-panel::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            .left-panel::-webkit-scrollbar-track,
+            .right-panel::-webkit-scrollbar-track {
+                background: var(--bg);
+            }
+
+            .left-panel::-webkit-scrollbar-thumb,
+            .right-panel::-webkit-scrollbar-thumb {
+                background: var(--border);
+                border-radius: 4px;
+            }
+
+            .left-panel::-webkit-scrollbar-thumb:hover,
+            .right-panel::-webkit-scrollbar-thumb:hover {
+                background: var(--accent);
+            }
+        }
+
+        h1 {
+            color: var(--accent);
+            font-size: 20px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .section {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            color: var(--accent);
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn,
+        .jog-arrow-btn,
+        .z-jog-btn,
+        .z-jog-btn-corner {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            font-size: 13px;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            transition: opacity 0.1s;
+        }
+
+        .jog-arrow-btn,
+        .z-jog-btn,
+        .z-jog-btn-corner {
+            background: rgba(46, 46, 46, 0.9);
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .btn:active {
+            opacity: 0.7;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        .btn-warning {
+            background: var(--warning);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .status-row:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: #888;
+        }
+
+        .status-value {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .jog-settings {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .jog-setting {
+            text-align: center;
+        }
+
+        .jog-setting label {
+            display: block;
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .jog-setting input {
+            width: 100%;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .file-list {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .file-item {
+            padding: 10px;
+            background: var(--input-bg);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            word-break: break-word;
+            transition: background 0.2s ease;
+        }
+
+        .file-item:hover {
+            background: #333;
+        }
+
+        .progress-bar {
+            height: 24px;
+            background: var(--input-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), #27ae60);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        details {
+            background: var(--input-bg);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        summary {
+            padding: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            -webkit-user-select: none;
+            user-select: none;
+            pointer-events: auto;
+        }
+
+        summary:hover {
+            background: #333;
+        }
+
+        summary::after {
+            content: '+';
+        }
+
+        details[open] summary::after {
+            content: '-';
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+            padding: 12px;
+        }
+
+        .config-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-item label {
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .config-item select,
+        .config-item input[type="number"],
+        .config-item input[type="text"] {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .axis-section {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .axis-section h4 {
+            margin: 0 0 10px 0;
+            color: var(--success);
+            font-size: 12px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .collapsible-btn {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--panel);
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .modal-title {
+            color: var(--accent);
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .canvas-container {
+            background: var(--input-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        #pathCanvas {
+            width: 100%;
+            height: 300px;
+            display: block;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        @media (min-width: 1024px) {
+            #pathCanvas {
+                height: 100%;
+            }
+        }
+
+        #pathCanvas:active {
+            cursor: grabbing;
+        }
+
+        .coord-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(26, 26, 26, 0.85);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: var(--text);
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .coord-overlay span {
+            display: inline-block;
+            margin: 0 6px;
+        }
+
+        .coord-overlay .label {
+            color: #888;
+        }
+
+        .coord-overlay .value {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .z-jog-btn {
+            width: 50px;
+            height: 30px;
+            font-size: 16px;
+            border-radius: 6px;
+        }
+
+        .z-jog-btn:active,
+        .jog-arrow-btn:active,
+        .z-jog-btn-corner:active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+            transform: scale(0.95);
+        }
+
+        .z-jog-btn.hidden,
+        .jog-overlay.hidden,
+        .z-jog-btn-corner.hidden {
+            display: none;
+        }
+
+        .jog-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .jog-overlay:hover {
+            opacity: 0.9;
+        }
+
+        .jog-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .jog-arrow-btn {
+            width: 50px;
+            height: 50px;
+            margin: 10px;
+            font-size: 20px;
+            border-radius: 8px;
+        }
+
+        .jog-arrow-btn.empty {
+            background: transparent;
+            border: none;
+            cursor: default;
+        }
+
+        .canvas-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 15;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .control-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #888;
+            background: rgba(26, 26, 26, 0.85);
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+
+        .control-checkbox input[type="checkbox"] {
+            cursor: pointer;
+        }
+
+        .top-controls-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .speed-slider-container {
+            flex: 1;
+            background: var(--input-bg);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+
+        .speed-slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .speed-slider-title {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .speed-slider-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--success);
+        }
+
+        .speed-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #444;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+
+        #routerPowerSlider::-webkit-slider-thumb,
+        #routerPowerSlider::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: var(--success);
+            border: 2px solid #fff;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .power-indicator {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 15;
+            background: rgba(26, 26, 26, 0.85);
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .power-indicator .status-indicator {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #c0392b;
+            border: 2px solid #333;
+            transition: background 0.3s ease;
+            cursor: pointer;
+        }
+
+        .power-indicator .status-indicator.active {
+            background: #2ecc71;
+        }
+
+        .power-indicator .status-text {
+            font-size: 11px;
+            color: #888;
+            font-weight: bold;
+        }
+
+        .job-running-hidden-active {
+            display: none !important;
+        }
+
+        .z-jog-btn-corner {
+            position: absolute;
+            z-index: 10;
+            width: 45px;
+            height: 45px;
+            font-size: 18px;
+            border-radius: 8px;
+        }
+
+        .z-jog-up-corner {
+            top: 50px;
+            right: 10px;
+        }
+
+        .z-jog-down-corner {
+            bottom: 50px;
+            right: 10px;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+        }
+
+        .canvas-controls-inline {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .file-action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .file-action-buttons .btn {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-title">WiFi</span>CNC Controller <span id="cpuType"
+                        style="font-size: 14px; color: #888; margin-left: 10px;">ESP8266</span>
+                    <button class="collapsible-btn" onclick="openConfigModal()">⚙</button>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span class="status-label">IP:</span>
+                    <span class="status-value" id="wifiIP">-</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-title">Job Status</span>
+                    <span class="status-value" id="toolModeDisplay">-</span>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px;">
+                    <span class="status-label" id="jobStatus">Idle</span>
+                    <span class="status-label" style="color: #888;" id="jobFile">-</span>
+                    <span class="status-value" id="jobProgress">0%</span>
+                </div>
+
+                <div class="btn-group">
+                    <button class="btn btn-warning" id="btnPause" onclick="pauseJob()" disabled>Pause</button>
+                    <button class="btn btn-success" id="btnResume" onclick="resumeJob()" disabled>Resume</button>
+                </div>
+                <button class="btn btn-danger btn-full" id="btnStop" onclick="stopJob()" disabled>Stop Job</button>
+            </div>
+
+            <div class="section job-running-hidden">
+                <div class="section-header">
+                    <span class="section-title">G-Code Files</span>
+                    <button class="collapsible-btn" onclick="loadFiles()" title="Refresh file list">🔄</button>
+                </div>
+
+                <button class="btn btn-primary btn-full" onclick="window.open('/gcode.html', '_blank')">📝 G-Code
+                    Editor</button>
+
+                <div class="file-list" id="fileList"></div>
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-title">Machine Position</span>
+                    <button class="collapsible-btn" onclick="toggleJogSettings()">⚙</button>
+                </div>
+                <div id="jogSettings" style="display: none;">
+                    <div class="jog-settings">
+                        <div class="jog-setting">
+                            <label>XY Distance (mm)</label>
+                            <select id="jogDistXY" onchange="syncJogDistXY()">
+                                <option value="0.5">0.5</option>
+                                <option value="1" selected>1</option>
+                                <option value="10">10</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                        <div class="jog-setting">
+                            <label>Z Distance (mm)</label>
+                            <select id="jogDistZ">
+                                <option value="0.5" selected>0.5</option>
+                                <option value="1">1</option>
+                                <option value="5">5</option>
+                            </select>
+                        </div>
+                        <div class="jog-setting">
+                            <label>Soft Limit Jog</label>
+                            <input type="checkbox" id="jogLimitChk" checked onchange="toggleJogLimit()">
+                        </div>
+                    </div>
+                    <input type="hidden" id="jogDistX" value="1"><input type="hidden" id="jogDistY" value="1">
+                </div>
+
+                <div class="top-controls-bar">
+                    <div class="speed-slider-container">
+                        <div class="speed-slider-label">
+                            <span class="speed-slider-title">Speed</span>
+                            <span class="speed-slider-value" id="globalSpeedValue">100%</span>
+                            <div class="canvas-controls-inline">
+                                <select id="colorMode" onchange="renderCanvas()"
+                                    style="background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 6px; font-size: 11px;">
+                                    <option value="laser">Power</option>
+                                    <option value="velocity">Velocity</option>
+                                </select>
+                                <label class="control-checkbox">
+                                    <input type="checkbox" id="autofollowCheckbox" onchange="toggleAutofollow()">
+                                    A-follow
+                                </label>
+                                <label class="control-checkbox">
+                                    <input type="checkbox" id="jogCheckbox" checked onchange="toggleJogOverlay()">
+                                    Jog
+                                </label>
+                                <button class="btn btn-primary" onclick="autoScaleView()"
+                                    style="padding: 6px 12px; font-size: 11px;">A-Scale</button>
+                            </div>
+                        </div>
+                        <input type="range" class="speed-slider" id="globalSpeedSlider" min="25" max="300" value="100"
+                            step="1" oninput="updateSpeedDisplay(this.value)" onchange="setGlobalSpeed(this.value)">
+                        <div
+                            style="display: flex; align-items: center; gap: 8px; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border);">
+                            <span style="font-size: 10px; color: #888; white-space: nowrap;">Color Ref:</span>
+                            <input type="range" class="speed-slider" id="maxVelRefSlider" min="1" max="250" value="250"
+                                step="1" style="flex: 1;" oninput="updateMaxVelRefDisplay(this.value)"
+                                onchange="setMaxVelRef(this.value)">
+                            <span class="speed-slider-value" id="maxVelRefValue"
+                                style="font-size: 10px; min-width: 35px;">250</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <div class="canvas-container">
+                        <canvas id="pathCanvas"></canvas>
+                        <div class="coord-overlay">
+                            <span><span class="label">X:</span><span class="value" id="overlayX">0.000</span></span>
+                            <span><span class="label">Y:</span><span class="value" id="overlayY">0.000</span></span>
+                            <span><span class="label">Z:</span><span class="value" id="overlayZ">0.000</span></span>
+                            <span><span class="label">V:</span><span class="value" id="overlayV">0.000</span></span>
+                            <span title="Step Event Buffer / Move Buffer health (100%=full=healthy)">
+                                <span class="label">BUF:</span>
+                                <span id="overlaySebHealth" style="font-weight:bold;font-size:10px;">-</span>
+                                <span class="label">/</span>
+                                <span id="overlayMoveHealth" style="font-weight:bold;font-size:10px;">-</span>
+                            </span>
+                        </div>
+                        <div class="jog-overlay" id="jogOverlay">
+                            <div class="jog-grid">
+                                <div class="jog-arrow-btn empty"></div>
+                                <div class="jog-arrow-btn" ontouchstart="handleJogTouch(event, 'Y', -1)"
+                                    onmousedown="startJog('Y', -1)" ontouchend="stopJog()" onmouseup="stopJog()"
+                                    onmouseleave="stopJog()">▲</div>
+                                <div class="jog-arrow-btn empty"></div>
+                                <div class="jog-arrow-btn" ontouchstart="handleJogTouch(event, 'X', -1)"
+                                    onmousedown="startJog('X', -1)" ontouchend="stopJog()" onmouseup="stopJog()"
+                                    onmouseleave="stopJog()">◄</div>
+                                <div class="jog-arrow-btn empty"></div>
+                                <div class="jog-arrow-btn" ontouchstart="handleJogTouch(event, 'X', 1)"
+                                    onmousedown="startJog('X', 1)" ontouchend="stopJog()" onmouseup="stopJog()"
+                                    onmouseleave="stopJog()">►</div>
+                                <div class="jog-arrow-btn empty"></div>
+                                <div class="jog-arrow-btn" ontouchstart="handleJogTouch(event, 'Y', 1)"
+                                    onmousedown="startJog('Y', 1)" ontouchend="stopJog()" onmouseup="stopJog()"
+                                    onmouseleave="stopJog()">▼</div>
+                                <div class="jog-arrow-btn empty"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="z-jog-btn-corner z-jog-up-corner" id="zJogUpCorner"
+                        ontouchstart="handleJogTouch(event, 'Z', 1)" onmousedown="startJog('Z', 1)"
+                        ontouchend="stopJog()" onmouseup="stopJog()" onmouseleave="stopJog()">▲</div>
+                    <div class="z-jog-btn-corner z-jog-down-corner" id="zJogDownCorner"
+                        ontouchstart="handleJogTouch(event, 'Z', -1)" onmousedown="startJog('Z', -1)"
+                        ontouchend="stopJog()" onmouseup="stopJog()" onmouseleave="stopJog()">▼</div>
+                    <div class="power-indicator">
+                        <div class="status-indicator" id="spindleStatus" onclick="toggleSpindle()"
+                            title="Click to toggle spindle"></div>
+                        <div class="status-text" id="spindlePower">0%</div>
+                    </div>
+                    <div id="routerPowerSliderContainer"
+                        style="display: none; margin-top: 8px; background: rgba(26, 26, 26, 0.85); padding: 8px 12px; border-radius: 6px;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span style="font-size: 11px; color: #888;">Router Power</span>
+                            <span id="routerPowerValue"
+                                style="font-size: 12px; color: var(--success); font-weight: bold;">0</span>
+                        </div>
+                        <input type="range" id="routerPowerSlider" min="0" max="255" value="0"
+                            style="width: 100%; height: 6px; border-radius: 3px; background: #444; outline: none; -webkit-appearance: none; cursor: pointer;"
+                            oninput="updateRouterPowerDisplay(this.value)" onchange="setRouterPower(this.value)">
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="btn-group job-running-hidden" style="margin-top: 8px;">
+                <button class="btn btn-danger btn-full job-running-hidden" style="margin-top: 8px;"
+                    onclick="setZeroAll()">Set Zero</button>
+                <button class="btn btn-primary btn-full job-running-hidden" style="margin-top: 8px;"
+                    onclick="homeAxis('ALL')">Home All</button>
+                <button class="btn btn-danger btn-full job-running-hidden" style="margin-top: 8px;"
+                    onclick="clearCanvas()">Clear Canvas</button>
+            </div>
+
+        </div>
+    </div>
+    </div>
+
+    <div class="modal" id="configModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">Configuration</span>
+                <button class="close-btn" onclick="closeConfigModal()">&times;</button>
+            </div>
+
+            <button class="btn btn-success btn-full" onclick="saveConfig()">Save Configuration</button>
+
+            <details>
+                <summary>WiFi</summary>
+                <div class="axis-section">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>SSID</label>
+                            <input type="text" id="newSSID" placeholder="Enter WiFi SSID">
+                        </div>
+                        <div class="config-item">
+                            <label>Password</label>
+                            <input type="password" id="newPassword" placeholder="WiFi Password">
+                        </div>
+                        <div class="config-item">
+                            <label>Use Static IP</label>
+                            <select id="useStatic" onchange="toggleStaticIP()">
+                                <option value="false">No (DHCP)</option>
+                                <option value="true">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="staticIPFields" style="display: none; margin-top: 12px;">
+                        <div style="margin-bottom: 12px; color: #888; font-size: 12px; text-align: center;">
+                            Static IP will use your current network prefix
+                        </div>
+                        <div class="config-grid">
+                            <div class="config-item">
+                                <label>Network Prefix</label>
+                                <input type="text" id="staticPrefix" readonly
+                                    style="background: #333; color: #888; cursor: not-allowed;">
+                            </div>
+                            <div class="config-item">
+                                <label>Last Octet</label>
+                                <input type="number" id="lastOctet" placeholder="100" min="1" max="254"
+                                    oninput="updateFullIP()">
+                            </div>
+                        </div>
+                        <div style="text-align: center; color: #888; font-size: 11px; margin-top: 8px;">
+                            Full IP will be: <span id="fullIP">192.168.1.100</span>
+                        </div>
+                    </div>
+                </div>
+            </details>
+            <details>
+                <summary>CNC Info</summary>
+                <div class="axis-section">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>Machine Name</label>
+                            <input type="text" id="cncName" placeholder="CNC Machine 1" maxlength="31">
+                        </div>
+                        <div class="config-item">
+                            <label>Machine Type</label>
+                            <input type="text" id="cncType" readonly
+                                style="background: #333; color: #888; cursor: not-allowed;">
+                        </div>
+                    </div>
+                </div>
+            </details>
+            <details>
+                <summary>System Configuration</summary>
+                <div class="axis-section">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>CPU Type</label>
+                            <select id="cpuTypeSelector" onchange="changeCpuType(this.value)">
+                                <option value="ESP8266">ESP8266</option>
+                                <option value="ESP32">ESP32</option>
+                                <option value="ESP32C3">ESP32-C3</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>Broadcast Position When Job Running</label>
+                            <select id="broadcastPositionWhenJobRunning">
+                                <option value="false">No</option>
+                                <option value="true">Yes</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>Test Laser Power (0-255)</label>
+                            <input type="number" id="testLaserPower" value="255" min="0" max="255">
+                        </div>
+                        <div class="config-item">
+                            <label>Test Laser Time (ms)</label>
+                            <input type="number" id="testLaserTime" value="1" min="1" max="100">
+                        </div>
+                    </div>
+                </div>
+                <details>
+                    <summary>Karyacnc Integration</summary>
+                    <div class="axis-section">
+                        <div class="config-grid">
+                            <div class="config-item">
+                                <label>Karyacnc IP Address</label>
+                                <input type="text" id="karyacncIP" placeholder="192.168.1.100" value="">
+                            </div>
+                            <div class="config-item">
+                                <label>Bot Token</label>
+                                <input type="text" id="karyacncToken" placeholder="bot_token" value="">
+                            </div>
+                            <div class="config-item">
+                                <label>Report ID</label>
+                                <input type="text" id="karyacncReportId" placeholder="report_id" value="">
+                            </div>
+                        </div>
+                    </div>
+                </details>
+                <details>
+                    <summary>Motion Planner</summary>
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>Junction Dev (mm)</label>
+                            <input type="number" id="juncDev" value="0.05" step="0.01">
+                        </div>
+                        <div class="config-item">
+                            <label>Min Plan Speed (mm/s)</label>
+                            <input type="number" id="minPlannerSpeed" value="0.0">
+                        </div>
+                        <div class="config-item">
+                            <label>Enable Input Shaping</label>
+                            <select id="enableInputShaping">
+                                <option value="false">No</option>
+                                <option value="true">Yes</option>
+                            </select>
+                        </div>
+                    </div>
+                </details>
+            </details>
+            <details>
+                <summary>LCD Configuration</summary>
+                <div class="axis-section">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>SDA Pin</label>
+                            <input type="text" id="lcdSda" value="D3" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>SDA2 Pin</label>
+                            <input type="text" id="lcdSda2" value="D1" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>SCL Pin</label>
+                            <input type="text" id="lcdScl" value="D2" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>RST Pin</label>
+                            <input type="text" id="lcdRst" value="D3" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>I2C Address (hex)</label>
+                            <input type="text" id="lcdAddr" value="0x3c">
+                        </div>
+                        <div class="config-item">
+                            <label>CS Pin</label>
+                            <input type="text" id="lcdCs" value="D8" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>LCD Type</label>
+                            <select id="lcdKind">
+                                <option value="0">NK1661</option>
+                                <option value="1">NK1202</option>
+                                <option value="2">NK6100</option>
+                                <option value="3">OLED1306</option>
+                                <option value="4" selected>ST7565</option>
+                                <option value="5">ST7735</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>Contrast</label>
+                            <input type="number" id="lcdContrast" value="6" min="0" max="255">
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <details>
+                <summary>Axis X</summary>
+                <div class="axis-section">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>Shaper</label>
+                            <select id="shaperX">
+                                <option value="0">None</option>
+                                <option value="1" selected>ZVD</option>
+                                <option value="2">MZV</option>
+                                <option value="3">EI</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>Velocity (mm/s)</label>
+                            <input type="number" id="velX" value="300">
+                        </div>
+                        <div class="config-item">
+                            <label>Acceleration (mm/s²)</label>
+                            <input type="number" id="accX" value="1000">
+                        </div>
+                        <div class="config-item">
+                            <label>Steps/mm</label>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <input type="text" inputmode="decimal" id="stepsX" value="80" style="flex: 1;">
+                                <button type="button" id="btnCalcStepsX" data-mode="calc" onclick="handleStepsCalcClick('X')"
+                                    title="Hitung ekspresi matematika koreksi (contoh: 100/102.5)"
+                                    style="background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; line-height: 1;">🔢</button>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <label>Frequency (Hz)</label>
+                            <input type="number" id="freqX" value="35">
+                        </div>
+                        <div class="config-item">
+                            <label>Damping</label>
+                            <input type="number" id="dampX" value="0.1" step="0.01">
+                        </div>
+                        <div class="config-item">
+                            <label>STEP Pin</label>
+                            <input type="text" id="pinStepX" value="D2" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>DIR Pin</label>
+                            <input type="text" id="pinDirX" value="D1" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>Has Endstop</label>
+                            <select id="hasEndstopX">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>Backlash (mm)</label>
+                            <input type="number" id="backlashX" value="0.0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <details>
+                <summary>Axis Y</summary>
+                <div class="axis-section">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>Shaper</label>
+                            <select id="shaperY">
+                                <option value="0">None</option>
+                                <option value="1" selected>ZVD</option>
+                                <option value="2">MZV</option>
+                                <option value="3">EI</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>Velocity (mm/s)</label>
+                            <input type="number" id="velY" value="300">
+                        </div>
+                        <div class="config-item">
+                            <label>Acceleration (mm/s²)</label>
+                            <input type="number" id="accY" value="1000">
+                        </div>
+                        <div class="config-item">
+                            <label>Steps/mm</label>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <input type="text" inputmode="decimal" id="stepsY" value="80" style="flex: 1;">
+                                <button type="button" id="btnCalcStepsY" data-mode="calc" onclick="handleStepsCalcClick('Y')"
+                                    title="Hitung ekspresi matematika koreksi (contoh: 100/102.5)"
+                                    style="background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; line-height: 1;">🔢</button>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <label>Frequency (Hz)</label>
+                            <input type="number" id="freqY" value="35">
+                        </div>
+                        <div class="config-item">
+                            <label>Damping</label>
+                            <input type="number" id="dampY" value="0.1" step="0.01">
+                        </div>
+                        <div class="config-item">
+                            <label>STEP Pin</label>
+                            <input type="text" id="pinStepY" value="D6" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>DIR Pin</label>
+                            <input type="text" id="pinDirY" value="D7" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>Has Endstop</label>
+                            <select id="hasEndstopY">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>Backlash (mm)</label>
+                            <input type="number" id="backlashY" value="0.0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <details>
+                <summary>Axis Z</summary>
+                <div class="axis-section">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>Velocity (mm/s)</label>
+                            <input type="number" id="velZ" value="50">
+                        </div>
+                        <div class="config-item">
+                            <label>Acceleration (mm/s²)</label>
+                            <input type="number" id="accZ" value="500">
+                        </div>
+                        <div class="config-item">
+                            <label>Steps/mm</label>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <input type="text" inputmode="decimal" id="stepsZ" value="400" style="flex: 1;">
+                                <button type="button" id="btnCalcStepsZ" data-mode="calc" onclick="handleStepsCalcClick('Z')"
+                                    title="Hitung ekspresi matematika koreksi (contoh: 100/102.5)"
+                                    style="background: var(--input-bg); border: 1px solid var(--border); color: var(--text); padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; line-height: 1;">🔢</button>
+                            </div>
+                        </div>
+                        <div class="config-item">
+                            <label>STEP Pin</label>
+                            <input type="text" id="pinStepZ" value="D5" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>DIR Pin</label>
+                            <input type="text" id="pinDirZ" value="D0" oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>Has Endstop</label>
+                            <select id="hasEndstopZ">
+                                <option value="0">No</option>
+                                <option value="1">Yes</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>Backlash (mm)</label>
+                            <input type="number" id="backlashZ" value="0.0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <details>
+                <summary>Tool / Spindle</summary>
+                <div class="axis-section">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>PWM Pin</label>
+                            <input type="text" id="pinToolPwm" value="D4"
+                                oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>Scale</label>
+                            <input type="number" id="toolScale" value="100">
+                        </div>
+                        <div class="config-item">
+                            <label>Mode</label>
+                            <select id="toolMode">
+                                <option value="0">CNC Router (Spindle)</option>
+                                <option value="1">Laser (Pulse per Distance)</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label
+                                title="DDA Dither = high frequency pulse density, better for small power adjustments&#10;PWM Duty Cycle = traditional 250Hz PWM, better for laser PSUs with slow response&#10;Zero Cross PWM = for AC control with zero-cross detection">PWM
+                                Type (?)</label>
+                            <select id="toolPwmMode">
+                                <option value="0">DDA Dither (High Freq)</option>
+                                <option value="1">PWM Duty Cycle (250Hz)</option>
+                                <option value="2">Zero Cross PWM (AC)</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>TOOLON Pin</label>
+                            <input type="text" id="pinToolOn" value="" placeholder="NC=Not Connected"
+                                oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>Zero Cross Pin</label>
+                            <input type="text" id="pinZeroCross" value="IO22"
+                                oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>Use Zero Cross</label>
+                            <select id="toolUseZeroCross">
+                                <option value="false">Disabled</option>
+                                <option value="true">Enabled</option>
+                            </select>
+                        </div>
+                        <div class="config-item">
+                            <label>Invert TOOLON</label>
+                            <select id="toolInvertToolOn">
+                                <option value="false">Normal</option>
+                                <option value="true">Inverted</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; text-align: center;">
+                        <button class="btn btn-primary" onclick="printPwmCalibration()" style="background: linear-gradient(135deg, #ff6b6b, #ee5a6f);">Print Kalibrasi PWM</button>
+                    </div>
+                </div>
+            </details>
+
+            <details>
+                <summary>Homing / Endstop</summary>
+                <div class="axis-section">
+                    <div class="config-grid">
+                        <div class="config-item">
+                            <label>Endstop Pin (Shared)</label>
+                            <input type="text" id="pinEndstop" value="D0"
+                                oninput="this.value = this.value.toUpperCase()">
+                        </div>
+                        <div class="config-item">
+                            <label>Homing Speed (mm/min)</label>
+                            <input type="number" id="homingSpeed" value="100">
+                        </div>
+                        <div class="config-item">
+                            <label>Pullback Distance (mm)</label>
+                            <input type="number" id="homingPullback" value="2.0" step="0.1">
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </div>
+
+    <div class="modal" id="fileActionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">File Actions</span>
+                <button class="close-btn" onclick="closeFileActionModal()">&times;</button>
+            </div>
+            <div style="text-align: center; margin-bottom: 15px;">
+                <span style="font-size: 16px; font-weight: bold; color: var(--accent);" id="fileActionFileName">-</span>
+                <br>
+                <span style="font-size: 12px; color: #888;" id="fileActionFileSize">-</span>
+                <br>
+                <span style="font-size: 14px; color: var(--success);" id="fileActionEstTime"
+                    onclick="calculateJobTime(selectedFileName)">-</span>
+            </div>
+            <div class="file-action-buttons">
+                <button class="btn btn-success" onclick="confirmStartJob(selectedFileName)">Start</button>
+                <button class="btn btn-primary" onclick="openResumePage(selectedFileName)">Resume</button>
+                <button class="btn btn-primary" onclick="previewJob(selectedFileName)">Preview</button>
+                <button class="btn btn-primary" onclick="editJob(selectedFileName)">Edit</button>
+                <button class="btn btn-danger" onclick="confirmDeleteJob(selectedFileName)">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="gcodex.js"></script>
+    <script src="cncplanner.js"></script>
+    <script>
+        document.documentElement.lang = 'en-US';
+
+        const getEl = id => document.getElementById(id);
+        const getVal = id => getEl(id).value;
+        const setTxt = (id, txt) => getEl(id).textContent = txt;
+        const setHtml = (id, html) => getEl(id).innerHTML = html;
+        const toggleCls = (id, cls, force) => getEl(id).classList.toggle(cls, force);
+
+        let selectedFileName = '', ws = null, jogInterval = null;
+        let autofollowEnabled = false;
+        let lastClickTime = 0, lastClickX = 0, lastClickY = 0;
+        let posHistory = [], velHistory = [];
+        let currentPosition = { X: 0, Y: 0, Z: 0 };
+        let currentVelocity = 0, currentLaser = 0, lastPosition = null;
+        let canvas, ctx, jobRunning = false;
+        let currentIndex = 0, lastJobRunning = false;
+        let jogTargetX = null, jogTargetY = null, jogTargetTime = 0;
+        let mouseTargetX = null, mouseTargetY = null, selectedPointIndex = null;
+        let viewOffsetX = 0, viewOffsetY = 0, zoomScale = 1;
+        let isDragging = false, hasMoved = false;
+        let lastMouseX = 0, lastMouseY = 0;
+        let maxVelocity = 0, maxLaser = 0, spindleEnabled = false;
+        let initialPinchDistance = 0;
+        let lastWsConnectionTime = 0;
+        let maxVelRef = 250; // Reference max velocity for color scaling
+        let centerX = 0, centerY = 0, cfg = { cpuType: 'ESP8266' };
+
+        // === FREEZE DETECTOR ===
+        let freezePoints = [];
+        let isFreezing = false;
+        let lastPosChangeTime = 0;
+        let lastRenderedPos = null; // posisi terakhir saat renderCanvas
+        const FREEZE_DURATION_MS = 1000;
+
+        const pinMap = [
+            { NC: 255, D0: 16, D1: 5, D2: 4, D3: 0, D4: 2, D5: 14, D6: 12, D7: 13, D8: 15, TX: 1, RX: 3 },
+            { NC: 255, IO15: 15, IO2: 2, IO0: 0, IO4: 4, IO16: 16, IO17: 17, IO5: 5, IO18: 18, IO19: 19, IO21: 21, IO3: 3, IO1: 1, IO22: 22, IO23: 23, IO13: 13, IO12: 12, IO14: 14, IO27: 27, IO26: 26, IO25: 25, IO33: 33, IO32: 32, TX2: 17, RX2: 16, A0: 36 },
+            { NC: 255, IO0: 0, IO1: 1, IO2: 2, IO3: 3, IO4: 4, IO5: 5, IO6: 6, IO7: 7, IO8: 8, IO9: 9, IO10: 10, IO18: 18, IO19: 19, IO20: 20, IO21: 21 }
+        ];
+        const reversePinMap = [
+            { 255: 'NC', 16: 'D0', 5: 'D1', 4: 'D2', 0: 'D3', 2: 'D4', 14: 'D5', 12: 'D6', 13: 'D7', 15: 'D8', 3: 'RX', 1: 'TX' },
+            { 255: 'NC', 15: 'IO15', 2: 'IO2', 0: 'IO0', 4: 'IO4', 16: 'IO16', 17: 'IO17', 5: 'IO5', 18: 'IO18', 19: 'IO19', 21: 'IO21', 3: 'IO3', 1: 'IO1', 22: 'IO22', 23: 'IO23', 13: 'IO13', 12: 'IO12', 14: 'IO14', 27: 'IO27', 26: 'IO26', 25: 'IO25', 33: 'IO33', 32: 'IO32', 17: 'TX2', 16: 'RX2', 36: 'A0' },
+            { 255: 'NC', 0: 'IO0', 1: 'IO1', 2: 'IO2', 3: 'IO3', 4: 'IO4', 5: 'IO5', 6: 'IO6', 7: 'IO7', 8: 'IO8', 9: 'IO9', 10: 'IO10', 18: 'IO18', 19: 'IO19', 20: 'IO20', 21: 'IO21' }
+        ];
+
+        const pinNameToNum = name => {
+            let idx = 0;
+            if (cfg.cpuType === "ESP32") idx = 1;
+            else if (cfg.cpuType === "ESP32C3") idx = 2;
+            const key = name.trim().toUpperCase();
+            if (key === '' || key === '-') return 255; // Pin tidak terkoneksi
+            return pinMap[idx][key] !== undefined ? pinMap[idx][key] : (parseInt(key) || 0);
+        };
+
+        const pinNumToName = num => {
+            let idx = 0;
+            if (cfg.cpuType === "ESP32") idx = 1;
+            else if (cfg.cpuType === "ESP32C3") idx = 2;
+            const n = parseInt(num);
+            if (n === 255) return ''; // NC - Not Connected, tampilkan kosong
+            return reversePinMap[idx][n] !== undefined ? reversePinMap[idx][n] : n.toString();
+        };
+
+        const changeCpuType = type => {
+            cfg.cpuType = type;
+            getEl('cpuType').textContent = type;
+            loadConfig(true);
+        };
+
+        const initWebSocket = () => {
+            try {
+                if (ws) ws.close();
+                ws = new WebSocket(`ws://${window.location.hostname}:81/`);
+                ws.binaryType = 'arraybuffer';
+
+                ws.onopen = () => {
+                    console.log('WebSocket connected');
+                    updateSpindleDisplay();
+                    const now = Date.now();
+                    // Hanya clear canvas jika reconnect setelah lama DAN job sedang running.
+                    // Jika job sudah selesai, simpan path agar bisa dilihat setelah kembali.
+                    if (lastWsConnectionTime > 0 && (now - lastWsConnectionTime) > 5000 && jobRunning) {
+                        console.log('WebSocket reconnected during active job - clearing stale canvas data');
+                        // posHistory = [];
+                        // velHistory = [];
+                        // lastPosition = null;
+                        // maxVelocity = maxLaser = 0;
+                    }
+                    lastWsConnectionTime = now;
+                };
+                ws.onclose = () => { console.log('WebSocket disconnected, reconnecting...'); setTimeout(initWebSocket, 2000); };
+                ws.onerror = e => console.log('WebSocket error:', e);
+
+                ws.onmessage = event => {
+                    if (event.data instanceof Blob || event.data instanceof ArrayBuffer) {
+                        const processData = (data, view) => {
+                            lastReceivedTime = Date.now(); // update setiap ada data WS
+                            if (data[0] === 0x01) {
+                                let idx = 2;
+                                for (let i = 0; i < data[1]; i++) {
+                                    addPositionToHistory(view.getInt32(idx, true), view.getInt32(idx + 4, true), view.getInt32(idx + 8, true), view.getInt32(idx + 12, true));
+                                    idx += 16;
+                                }
+                                const nameLen = data[idx + 3];
+                                const jobFile = nameLen > 0 ? String.fromCharCode(...data.slice(idx + 4, idx + 4 + nameLen)) : '';
+                                updateJobStatus({ running: data[idx] === 1, paused: data[idx + 1] === 1, file: jobFile, progress: data[idx + 2] });
+                                // Buffer health bytes (setelah job name)
+                                const afterName = idx + 4 + nameLen;
+                                if (data.length > afterName + 1) {
+                                    updateBufferHealth(data[afterName], data[afterName + 1]);
+                                }
+
+                            } else if (data[0] === 0xA0) {
+                                const speed = view.getInt16(1, true);
+                                setVal('globalSpeedSlider', speed);
+                                setTxt('globalSpeedValue', `${speed}%`);
+                            } else if (data[0] === 0xA1) {
+                                const running = data[1] === 1, paused = data[2] === 1;
+                                let idx = 3, nameLen = data[idx++];
+                                const jobFile = nameLen > 0 ? String.fromCharCode(...data.slice(idx, idx + nameLen)) : '';
+                                idx += nameLen + 1;
+                                updateJobStatus({ running, paused, file: jobFile, bytesRead: view.getUint32(idx, true), fileSize: view.getUint32(idx + 4, true), progress: data[idx + 8] });
+                            }
+                        };
+
+                        if (event.data instanceof Blob) {
+                            new FileReader().onload = e => processData(new Uint8Array(e.target.result), new DataView(e.target.result));
+                        } else {
+                            processData(new Uint8Array(event.data), new DataView(event.data));
+                        }
+                    } else {
+                        const data = JSON.parse(event.data);
+                        if (data.event === 'positions') {
+                            data.positions.forEach(pos => addPositionToHistory(pos[0], pos[1], pos[2], pos[3]));
+                            if (data.job) updateJobStatus(data.job);
+                        } else if (data.event === 'jobStarted') {
+                            lastPosition = null;
+                            centerX = centerY = viewOffsetX = viewOffsetY = 0;
+                            zoomScale = 1;
+                            maxVelocity = maxLaser = 0;
+                            spindleEnabled = false;
+                        }
+                    }
+                };
+            } catch (e) { console.log('WebSocket init error:', e); }
+        };
+
+        const isPositionDifferent = (x, y, z, l) => !lastPosition || lastPosition[0] !== x || lastPosition[1] !== y || lastPosition[2] !== z || lastPosition[3] !== l;
+        const MAX_POSITION_JUMP = 10000;
+        const addPositionToHistory = (x, y, z, l) => {
+            if (!isPositionDifferent(x, y, z, l)) return;
+            if (lastPosition) {
+                const dx = Math.abs(x - lastPosition[0]) / 100;
+                const dy = Math.abs(y - lastPosition[1]) / 100;
+                const dz = Math.abs(z - lastPosition[2]) / 100;
+                if (dx > MAX_POSITION_JUMP || dy > MAX_POSITION_JUMP || dz > MAX_POSITION_JUMP) {
+                    console.warn(`Position jump too large (${dx.toFixed(1)}, ${dy.toFixed(1)}, ${dz.toFixed(1)}) mm - clearing history`);
+                    posHistory = [];
+                    velHistory = [];
+                }
+            }
+            // Tandai freeze selesai saat posisi kembali bergerak
+            if (isFreezing) isFreezing = false;
+            lastPosChangeTime = Date.now();
+            posHistory.push([x, y, z, l]);
+            lastPosition = [x, y, z, l];
+        };
+
+
+        const sendWSCommand = (cmd, payload) => ws && ws.readyState === WebSocket.OPEN && ws.send(new Uint8Array([cmd, ...payload]));
+        const wsJog = (x, y, z) => { const buf = new DataView(new ArrayBuffer(13)); buf.setUint8(0, 0x10); buf.setFloat32(1, x, true); buf.setFloat32(5, y, true); buf.setFloat32(9, z, true); if (ws) ws.send(buf); };
+        const wsPauseJob = () => sendWSCommand(0x11, []);
+        const wsResumeJob = () => sendWSCommand(0x12, []);
+        const wsStopJob = () => sendWSCommand(0x13, []);
+        const wsSetSpeed = speed => { const buf = new DataView(new ArrayBuffer(3)); buf.setUint8(0, 0x14); buf.setInt16(1, speed, true); if (ws) ws.send(buf); };
+        const wsToggleTool = () => sendWSCommand(0x15, []);
+        const wsSetToolPower = power => { const buf = new DataView(new ArrayBuffer(2)); buf.setUint8(0, 0x16); buf.setUint8(1, power); if (ws) ws.send(buf); };
+        const wsResetAll = () => sendWSCommand(0x16, []);
+        const wsHome = axis => sendWSCommand(0x17, [{ X: 0, Y: 1, Z: 2, ALL: 3 }[axis] || 0]);
+        const wsRequestSpeed = () => sendWSCommand(0x20, []);
+        const wsRequestJobStatus = () => sendWSCommand(0x21, []);
+
+        // === BUFFER HEALTH ===
+        const bufHealthColor = pct => pct >= 75 ? '#2ecc71' : pct >= 40 ? '#f39c12' : '#e74c3c';
+        const updateBufferHealth = (sebPct, movePct) => {
+            const sebEl = getEl('overlaySebHealth');
+            const moveEl = getEl('overlayMoveHealth');
+            if (sebEl) { sebEl.textContent = `${sebPct}%`; sebEl.style.color = bufHealthColor(sebPct); }
+            if (moveEl) { moveEl.textContent = `${movePct}%`; moveEl.style.color = bufHealthColor(movePct); }
+        };
+
+        // === FREEZE DETECTION — per-paket, tanpa setInterval ===
+        const startFreezeDetector = () => {
+            lastPosChangeTime = Date.now();
+            lastRenderedPos = null;
+            isFreezing = false;
+        };
+
+        const updateRouterPowerDisplay = value => setTxt('routerPowerValue', value);
+        const setRouterPower = value => { const p = parseInt(value); currentLaser = p; wsSetToolPower(p); spindleEnabled = p > 0; updateSpindleDisplay(); console.log(`Router power set to ${p}`); };
+        const clearCanvas = () => { posHistory = []; velHistory = []; lastPosition = null; currentIndex = 0; freezePoints = []; isFreezing = false; lastRenderedPos = null; renderCanvas(); };
+
+        const setZeroAll = () => confirm('Set all positions and tool power to zero?') && wsResetAll();
+
+        const toggleStaticIP = () => { const useStatic = getVal('useStatic') === 'true'; getEl('staticIPFields').style.display = useStatic ? 'block' : 'none'; useStatic && updateFullIP(); };
+        const updateFullIP = () => { const lastOctet = getVal('lastOctet') || '100'; const prefix = window.location.hostname.split('.').slice(0, 3).join('.'); setTxt('staticPrefix', prefix); setTxt('fullIP', `${prefix}.${lastOctet}`); };
+        const toggleJogSettings = () => { const s = getEl('jogSettings'); s.style.display = s.style.display === 'none' ? 'block' : 'none'; };
+        const toggleJogOverlay = () => { const checked = getEl('jogCheckbox').checked;['jogOverlay', 'zJogUpCorner', 'zJogDownCorner'].forEach(id => toggleCls(id, 'hidden', !checked)); };
+        // Soft-limit jog: ON = jog tidak bisa masuk area negatif/luar window
+        const loadJogLimit = async () => { try { const r = await fetch('/api/joglimit').then(r => r.json()); getEl('jogLimitChk').checked = !!r.jogLimitEnabled; } catch (e) { console.error('Load jog limit error:', e); } };
+        const toggleJogLimit = async () => {
+            const en = getEl('jogLimitChk').checked;
+            try {
+                const r = await fetch('/api/joglimit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jogLimitEnabled: en }) });
+                if (r.ok) { const j = await r.json(); getEl('jogLimitChk').checked = !!j.jogLimitEnabled; }
+                else { getEl('jogLimitChk').checked = !en; alert('Gagal menyimpan setelan jog limit'); }
+            } catch (e) { getEl('jogLimitChk').checked = !en; alert('Gagal menyimpan setelan jog limit'); }
+        };
+        const toggleAutofollow = () => { autofollowEnabled = getEl('autofollowCheckbox').checked; };
+
+        const updateJobRunningUI = running => {
+            const hide = running || !getEl('jogCheckbox').checked;
+            ['jogOverlay', 'zJogUpCorner', 'zJogDownCorner'].forEach(id => toggleCls(id, 'hidden', hide));
+            document.querySelectorAll('.job-running-hidden').forEach(el => el.classList.toggle('job-running-hidden-active', running));
+            updateSpindleDisplay();
+        };
+
+        const getRenderBounds = () => { const w = canvas.width, h = canvas.height, s = zoomScale; return { scale: s, offsetX: w / 2 - centerX * s + viewOffsetX, offsetY: h / 2 - centerY * s + viewOffsetY, centerX, centerY, width: w, height: h }; };
+        const calculateJogTarget = (sx, sy) => { const rect = canvas.getBoundingClientRect(), scale = canvas.width / rect.width, bounds = getRenderBounds(); return { x: (sx * scale - rect.left * scale - bounds.offsetX) / bounds.scale, y: (sy * scale - rect.top * scale - bounds.offsetY) / bounds.scale }; };
+
+        const findNearestPoint = (sx, sy) => {
+            if (!posHistory.length) return null;
+            const rect = canvas.getBoundingClientRect(), scale = canvas.width / rect.width;
+            const mx = (sx - rect.left) * scale, my = (sy - rect.top) * scale;
+            const { scale: sc, offsetX, offsetY } = getRenderBounds();
+            let minDist = Infinity, nearestIdx = 0;
+            posHistory.forEach((p, i) => { const dx = offsetX + p[0] / 100 * sc - mx, dy = offsetY + p[1] / 100 * sc - my, dist = Math.hypot(dx, dy); if (dist < minDist) { minDist = dist; nearestIdx = i; } });
+            return nearestIdx;
+        };
+
+        const jogToPosition = (sx, sy) => { const t = calculateJogTarget(sx, sy); if (!t) return; wsJog(t.x - currentPosition.X, t.y - currentPosition.Y, 0); jogTargetX = t.x; jogTargetY = t.y; jogTargetTime = Date.now(); console.log(`Jogging to: ${t.x.toFixed(3)}, ${t.y.toFixed(3)}`); };
+        const handleJogTouch = (e, axis, dir) => { e.preventDefault(); startJog(axis, dir); };
+        const syncJogDistXY = () => { const v = getVal('jogDistXY'); setVal('jogDistX', v); setVal('jogDistY', v); };
+
+        const startJog = (axis, dir) => {
+            const dist = axis === 'Z' ? parseFloat(getVal('jogDistZ')) || 0.5 : parseFloat(getVal('jogDistXY')) || 1;
+            const x = axis === 'X' ? dir * dist : 0, y = axis === 'Y' ? dir * dist : 0, z = axis === 'Z' ? dir * dist : 0;
+            wsJog(x, y, z);
+            // Hold-to-repeat: tahan tombol → kirim ulang jog tiap 250ms.
+            // Interval di-clear di stopJog (touchend/mouseup/leave).
+            clearInterval(jogInterval);
+            jogInterval = setInterval(() => wsJog(x, y, z), 250);
+        };
+        const stopJog = () => { clearInterval(jogInterval); jogInterval = null; sendWSCommand(0x18, []); };
+
+        const homeAxis = axis => { const msg = axis === 'ALL' ? 'Home all axes?' : `Home axis ${axis}?`; confirm(msg) && wsHome(axis); };
+
+        const loadFiles = () => fetch('/api/files').then(r => r.text()).then(text => {
+            const files = text.trim().split('\n').filter(l => l.includes(',')).map(l => { const p = l.split(','); return { name: p[0], size: parseInt(p[1]) }; }).sort((a, b) => a.name.localeCompare(b.name));
+            getEl('fileList').innerHTML = '';
+            files.forEach(f => { const d = document.createElement('div'); d.className = 'file-item'; d.textContent = f.name; d.onclick = () => openFileActionModal(f.name, f.size); getEl('fileList').appendChild(d); });
+        });
+
+        const openResumePage = filename => { closeFileActionModal(); window.open(`/resume.html?file=${encodeURIComponent(filename)}`, '_blank'); };
+        const confirmDeleteJob = filename => { closeFileActionModal(); confirm(`Delete ${filename}?`) && deleteJob(filename); };
+        const deleteJob = filename => fetch('/api/delete', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `file=${filename}` }).then(() => loadFiles()).catch(err => alert(`Error: ${err.message}`));
+
+        const loadGlobalSpeed = () => wsRequestSpeed();
+        const updateSpeedDisplay = value => setTxt('globalSpeedValue', `${parseInt(value)}%`);
+        const setGlobalSpeed = value => { const s = parseInt(value); wsSetSpeed(s); console.log(`Global speed set to ${s}%`); };
+        const updateMaxVelRefDisplay = value => setTxt('maxVelRefValue', parseInt(value));
+        const setMaxVelRef = value => { maxVelRef = parseInt(value); renderCanvas(); console.log(`Max velocity reference set to ${maxVelRef}`); };
+
+        const loadConfig = async (isRefresh = false) => { if (isRefresh) { renderConfigToUI(); return; } try { cfg = await fetch('/api/config').then(r => r.json()); renderConfigToUI(); return cfg; } catch (e) { console.error('Load config error:', e); return null; } };
+
+        // === STEPS/MM CALIBRATION CALCULATOR ===
+        const stepsOldValue = { X: null, Y: null, Z: null };
+        const calcStepsInput = (raw, oldVal) => {
+            if (raw === '' || raw === null || raw === undefined) return parseFloat(oldVal) || 0;
+            const s = String(raw).trim();
+            if (s === '') return parseFloat(oldVal) || 0;
+            if (!/^[\d+\-*/().\s]+$/.test(s)) return parseFloat(oldVal) || 0;
+            let computed;
+            try { computed = eval(s); } catch (e) { return parseFloat(oldVal) || 0; }
+            if (typeof computed !== 'number' || !isFinite(computed) || isNaN(computed)) {
+                return parseFloat(oldVal) || 0;
+            }
+            const absVal = Math.abs(computed);
+            if (absVal < 10 && parseFloat(oldVal) > 0) {
+                return parseFloat(oldVal) * computed;
+            }
+            return computed;
+        };
+        const handleStepsCalcClick = axis => {
+            const inputId = `steps${axis}`;
+            const btnId = `btnCalcSteps${axis}`;
+            const input = getEl(inputId);
+            const btn = getEl(btnId);
+            if (!input || !btn) return;
+            const oldVal = cfg[axis] && cfg[axis].stepsPerMm ? cfg[axis].stepsPerMm : 0;
+            if (btn.dataset.mode === 'calc') {
+                const result = calcStepsInput(input.value, oldVal);
+                stepsOldValue[axis] = input.value;
+                input.value = result.toFixed(4);
+                btn.dataset.mode = 'undo';
+                btn.innerHTML = '↶';
+                btn.title = 'Undo koreksi - kembalikan ke nilai input sebelumnya';
+            } else {
+                input.value = stepsOldValue[axis] !== null ? stepsOldValue[axis] : oldVal;
+                stepsOldValue[axis] = null;
+                btn.dataset.mode = 'calc';
+                btn.innerHTML = '🔢';
+                btn.title = 'Hitung ekspresi matematika koreksi (contoh: 100/102.5)';
+            }
+        };
+
+        const setVal = (id, val) => { const el = getEl(id); if (el) el.value = val; };
+
+        const setAxisConfig = (axis, prefix) => {
+            const ax = cfg[axis];
+            setVal(`vel${prefix}`, ax.vel);
+            setVal(`acc${prefix}`, ax.acc);
+            setVal(`steps${prefix}`, ax.stepsPerMm);
+            if (prefix !== 'Z') { setVal(`freq${prefix}`, ax.freq); setVal(`damp${prefix}`, Math.round(ax.damp * 100) / 100); setVal(`shaper${prefix}`, ax.shaperType); }
+            setVal(`pinStep${prefix}`, pinNumToName(ax.pinStep));
+            setVal(`pinDir${prefix}`, pinNumToName(ax.pinDir));
+            setVal(`hasEndstop${prefix}`, ax.hasEndstop || 0);
+            setVal(`backlash${prefix}`, ax.backlash || 0);
+            const calcBtn = getEl(`btnCalcSteps${prefix}`);
+            if (calcBtn) { calcBtn.dataset.mode = 'calc'; calcBtn.innerHTML = '🔢'; calcBtn.title = 'Hitung ekspresi matematika koreksi (contoh: 100/102.5)'; }
+            stepsOldValue[prefix] = null;
+        };
+
+        const renderConfigToUI = () => {
+            if (cfg.wifi) {
+                setVal('newSSID', cfg.wifi.ssid || '');
+                setVal('newPassword', cfg.wifi.password || '');
+                setVal('lastOctet', cfg.wifi.lastOctet || '');
+                setVal('useStatic', cfg.wifi.useStatic ? 'true' : 'false');
+                updateFullIP();
+                toggleStaticIP();
+            }
+
+            setVal('juncDev', Math.round(cfg.motion.junctionDev * 100) / 100);
+            setVal('minPlannerSpeed', Math.round(cfg.motion.minPlannerSpeed * 100) / 100);
+            setVal('enableInputShaping', cfg.motion.enableInputShaping ? 'true' : 'false');
+
+            ['X', 'Y'].forEach(a => setAxisConfig(a, a));
+            setAxisConfig('Z', 'Z');
+
+            if (cfg.tool) {
+                setVal('pinToolPwm', pinNumToName(cfg.tool.pinPwm));
+                setVal('toolScale', cfg.tool.scale);
+                setVal('toolMode', cfg.tool.mode);
+                setVal('toolPwmMode', cfg.tool.pwmMode || 0);
+                setVal('pinToolOn', pinNumToName(cfg.tool.pinToolOn !== undefined ? cfg.tool.pinToolOn : 255));
+                setVal('pinZeroCross', pinNumToName(cfg.tool.pinZeroCross !== undefined ? cfg.tool.pinZeroCross : 22));
+                setVal('toolUseZeroCross', cfg.tool.useZeroCross ? 'true' : 'false');
+                setVal('toolInvertToolOn', cfg.tool.invertToolOn ? 'true' : 'false');
+                updateToolModeDisplay(cfg.tool.mode);
+            }
+
+            if (cfg.homing) {
+                setVal('pinEndstop', pinNumToName(cfg.homing.pinEndstop));
+                setVal('homingSpeed', cfg.homing.homingSpeed);
+                setVal('homingPullback', cfg.homing.homingPullback);
+            }
+
+            if (cfg.system) {
+                setVal('broadcastPositionWhenJobRunning', cfg.system.broadcastPositionWhenJobRunning ? 'true' : 'false');
+                setVal('testLaserPower', cfg.system.testLaserPower || 255);
+                setVal('testLaserTime', cfg.system.testLaserTime || 1);
+            }
+
+            if (cfg.cncInfo) {
+                setVal('cncName', cfg.cncInfo.name || 'CNC Machine 1');
+                setVal('cncType', (cfg.tool && cfg.tool.mode || 0) === 0 ? 'CNC Router' : 'Laser Cutter');
+            }
+
+            if (cfg.lcd) {
+                setVal('lcdSda', pinNumToName(cfg.lcd.sda));
+                setVal('lcdSda2', pinNumToName(cfg.lcd.sda2));
+                setVal('lcdRst', pinNumToName(cfg.lcd.rst));
+                setVal('lcdScl', pinNumToName(cfg.lcd.scl));
+                setVal('lcdAddr', cfg.lcd.addr);
+                setVal('lcdCs', pinNumToName(cfg.lcd.cs));
+                setVal('lcdKind', cfg.lcd.kind);
+                setVal('lcdContrast', cfg.lcd.contrast);
+            }
+
+            if (cfg.karyacnc) {
+                setVal('karyacncIP', cfg.karyacnc.ip || '');
+                setVal('karyacncToken', cfg.karyacnc.token || '');
+                setVal('karyacncReportId', cfg.karyacnc.reportId || '');
+            }
+
+            if (cfg.cpuType) {
+                setTxt('cpuType', cfg.cpuType);
+                setVal('cpuTypeSelector', cfg.cpuType);
+            }
+
+            if (cfg.globalSpeed) {
+                const speed = Math.round(cfg.globalSpeed);
+                setVal('globalSpeedSlider', speed);
+                setTxt('globalSpeedValue', `${speed}%`);
+            }
+        };
+
+        const updateToolModeDisplay = mode => {
+            const text = mode === 0 ? 'Router' : 'Laser';
+            const color = mode === 0 ? 'var(--success)' : 'var(--accent)';
+            setTxt('toolModeDisplay', text);
+            getEl('toolModeDisplay').style.color = color;
+            getEl('colorMode').innerHTML = mode === 0 ? '<option value="velocity">Velocity</option>' : '<option value="laser">Laser</option><option value="velocity">Velocity</option>';
+            setVal('cncType', mode === 0 ? 'CNC Router' : 'Laser Cutter');
+            updateSpindleDisplay();
+        };
+
+        const saveConfig = () => {
+            const toNum = id => parseFloat(getVal(id)) || 0;
+            const toInt = id => parseInt(getVal(id)) || 0;
+            const config = {
+                wifi: { ssid: getVal('newSSID').trim() || '', password: getVal('newPassword'), lastOctet: toInt('lastOctet'), useStatic: getVal('useStatic') === 'true' },
+                motion: { junctionDev: toNum('juncDev'), minPlannerSpeed: toNum('minPlannerSpeed'), enableInputShaping: getVal('enableInputShaping') === 'true' },
+                X: { vel: toNum('velX'), acc: toNum('accX'), stepsPerMm: toNum('stepsX'), freq: toNum('freqX'), damp: toNum('dampX'), shaperType: toInt('shaperX'), pinStep: pinNameToNum(getVal('pinStepX')), pinDir: pinNameToNum(getVal('pinDirX')), hasEndstop: toInt('hasEndstopX'), backlash: toNum('backlashX') },
+                Y: { vel: toNum('velY'), acc: toNum('accY'), stepsPerMm: toNum('stepsY'), freq: toNum('freqY'), damp: toNum('dampY'), shaperType: toInt('shaperY'), pinStep: pinNameToNum(getVal('pinStepY')), pinDir: pinNameToNum(getVal('pinDirY')), hasEndstop: toInt('hasEndstopY'), backlash: toNum('backlashY') },
+                Z: { vel: toNum('velZ'), acc: toNum('accZ'), stepsPerMm: toNum('stepsZ'), freq: 0, damp: 0, shaperType: 0, pinStep: pinNameToNum(getVal('pinStepZ')), pinDir: pinNameToNum(getVal('pinDirZ')), hasEndstop: toInt('hasEndstopZ'), backlash: toNum('backlashZ') },
+                tool: { pinPwm: pinNameToNum(getVal('pinToolPwm')), pinToolOn: pinNameToNum(getVal('pinToolOn')), pinZeroCross: pinNameToNum(getVal('pinZeroCross')), scale: toInt('toolScale'), mode: toInt('toolMode'), pwmMode: toInt('toolPwmMode'), useZeroCross: getVal('toolUseZeroCross') === 'true', invertToolOn: getVal('toolInvertToolOn') === 'true' },
+                homing: { pinEndstop: pinNameToNum(getVal('pinEndstop')), homingSpeed: toNum('homingSpeed'), homingPullback: toNum('homingPullback') },
+                system: { broadcastPositionWhenJobRunning: getVal('broadcastPositionWhenJobRunning') === 'true', testLaserPower: toInt('testLaserPower'), testLaserTime: toInt('testLaserTime') },
+                cncInfo: { name: getVal('cncName').trim() || 'CNC Machine 1' },
+                lcd: { sda: pinNameToNum(getVal('lcdSda')), sda2: pinNameToNum(getVal('lcdSda2')), rst: pinNameToNum(getVal('lcdRst')), scl: pinNameToNum(getVal('lcdScl')), addr: toInt('lcdAddr'), cs: pinNameToNum(getVal('lcdCs')), kind: toInt('lcdKind'), contrast: toInt('lcdContrast') },
+                karyacnc: { ip: getVal('karyacncIP').trim(), token: getVal('karyacncToken').trim(), reportId: getVal('karyacncReportId').trim() },
+                cpuType: getVal('cpuTypeSelector')
+            };
+            fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) }).then(() => alert('OK')).catch(() => alert('OK'));
+        };
+
+        const startJob = filename => { maxVelocity = maxLaser = 0; lastPosition = null; fetch('/api/job/start', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `file=${filename}` }); };
+        const confirmStartJob = filename => { closeFileActionModal(); startJob(filename); };
+        const previewJob = filename => { closeFileActionModal(); fetch('/api/job/preview', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `file=${encodeURIComponent(filename)}` }).then(r => r.text()).then(d => console.log('Preview:', d)).catch(console.error); };
+        const editJob = filename => { closeFileActionModal(); window.open(`/gcode.html?job=${filename}`, '_blank'); };
+        const generatePwmCalibGcode = () => {
+            const ENGRAVE_SPEED = 200 * 60;
+            const CUT_SPEED = 12 * 60;
+            const Y_STEP = 0.2;
+            const NUM_LINES = 128;
+
+            let gcode = 'G21\nG90\n';
+            gcode += `G0 X-5 F${ENGRAVE_SPEED}\n`;
+            gcode += `G1 F${ENGRAVE_SPEED}\n`;
+
+            for (let i = 0; i < NUM_LINES; i += 2) {
+                const pwm1 = Math.round((i * 255) / (NUM_LINES - 1));
+                const pwm2 = Math.round(((i + 1) * 255) / (NUM_LINES - 1));
+                const y2 = (i + 1) * Y_STEP;
+
+                gcode += 'G0 X0\n';
+                gcode += `G1 X5 S${pwm1}\n`;
+                gcode += `G0 X10 Y${y2.toFixed(1)}\n`;
+                gcode += 'G0 X5\n';
+                gcode += `G1 X0 S${pwm2}\n`;
+                gcode += `G0 X-5 Y${(y2 + Y_STEP).toFixed(1)}\n`;
+            }
+
+            gcode += 'G0 X-3 Y-3\n';
+            gcode += 'M3 S255\n';
+            gcode += `G1 F${CUT_SPEED}\n`;
+            gcode += 'G1 X8\n';
+            gcode += 'G1 Y28.6\n';
+            gcode += 'G1 X-3\n';
+            gcode += 'G1 Y-3\n';
+            gcode += 'M5\n';
+
+            return gcode;
+        };
+
+        const uploadFile = (filename, content) => {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const formData = new FormData();
+            formData.append('file', blob, filename);
+
+            return fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+        };
+
+        const printPwmCalibration = () => {
+            if (!confirm('Generate dan upload file kalibrasi PWM?\nIni akan membuat kotak 5x25mm dengan 128 garis (PWM 0-255) dan memotong outline.\nFile akan disimpan sebagai pwmcalib.gcode')) return;
+
+            const gcode = generatePwmCalibGcode();
+            uploadFile('pwmcalib.gcode', gcode)
+                .then(r => r.text())
+                .then(d => alert('File pwmcalib.gcode berhasil diupload!\nSilakan jalankan job dari file manager.'))
+                .catch(e => alert('Error upload: ' + e.message));
+        };
+        const updateFromPositionBuffer = () => { const count = posHistory.length - 1; currentIndex += Math.max(1, Math.floor((count - currentIndex) / 20)); currentIndex = Math.max(0, Math.min(currentIndex, count)); renderCanvas(); };
+        const updateDisplay = () => updateSpindleDisplay();
+
+        const updateSpindleDisplay = () => {
+            const power = currentLaser || 0;
+            const percent = Math.round((power / 255) * 100);
+            setTxt('spindlePower', `${percent}%`);
+            getEl('spindleStatus').classList.toggle('active', power > 0);
+            const showSlider = cfg && cfg.tool && cfg.tool.mode === 0 && !jobRunning;
+            getEl('routerPowerSliderContainer').style.display = showSlider ? 'block' : 'none';
+            if (showSlider) { setVal('routerPowerSlider', currentLaser); setTxt('routerPowerValue', currentLaser); }
+        };
+
+        const autoScaleView = () => {
+            if (!posHistory.length) return;
+            const bounds = posHistory.reduce((a, p) => ({ minX: Math.min(a.minX, p[0] / 100), maxX: Math.max(a.maxX, p[0] / 100), minY: Math.min(a.minY, p[1] / 100), maxY: Math.max(a.maxY, p[1] / 100) }), { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
+            centerX = (bounds.minX + bounds.maxX) / 2;
+            centerY = (bounds.minY + bounds.maxY) / 2;
+            zoomScale = Math.min((canvas.width - 40) / Math.max(bounds.maxX - bounds.minX, 100), (canvas.height - 40) / Math.max(bounds.maxY - bounds.minY, 100));
+            viewOffsetX = viewOffsetY = 0;
+            renderCanvas();
+        };
+
+        const renderCanvas = () => {
+            if (!canvas) return;
+            const w = canvas.width, h = canvas.height;
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(0, 0, w, h);
+
+            const limit = posHistory.length > 0 ? Math.min(currentIndex, posHistory.length - 1) : 0;
+            if (limit >= 0 && posHistory.length > 0) {
+                const pos = posHistory[limit];
+                currentPosition = { X: pos[0] / 100, Y: pos[1] / 100, Z: pos[2] / 100 };
+                currentLaser = pos[3] || 0;
+
+                // === FREEZE CHECK (dipanggil tiap 70ms via updateFromPositionBuffer) ===
+                if (jobRunning) {
+                    const cx = currentPosition.X, cy = currentPosition.Y, cz = currentPosition.Z;
+                    if (lastRenderedPos &&
+                        Math.abs(cx - lastRenderedPos.x) < 0.01 &&
+                        Math.abs(cy - lastRenderedPos.y) < 0.01 &&
+                        Math.abs(cz - lastRenderedPos.z) < 0.01) {
+                        // Posisi sama — cek durasi diam
+                        const stillMs = Date.now() - lastPosChangeTime;
+                        if (stillMs >= FREEZE_DURATION_MS && !isFreezing) {
+                            isFreezing = true;
+                            freezePoints.push({ x: cx, y: cy, ms: stillMs, time: new Date().toLocaleTimeString() });
+                            console.warn(`FREEZE at (${cx.toFixed(2)}, ${cy.toFixed(2)}) for ${stillMs}ms`);
+                        }
+                        if (isFreezing && freezePoints.length > 0) {
+                            freezePoints[freezePoints.length - 1].ms = Date.now() - lastPosChangeTime;
+                        }
+                    } else {
+                        // Posisi berubah
+                        if (isFreezing) isFreezing = false;
+                        lastPosChangeTime = Date.now();
+                        lastRenderedPos = { x: cx, y: cy, z: cz };
+                    }
+                    if (!lastRenderedPos) lastRenderedPos = { x: cx, y: cy, z: cz };
+                }
+
+                updateDisplay();
+                setTxt('overlayX', currentPosition.X.toFixed(3));
+                setTxt('overlayY', currentPosition.Y.toFixed(3));
+                setTxt('overlayZ', currentPosition.Z.toFixed(3));
+                setTxt('overlayV', (currentVelocity || 0).toFixed(3));
+
+                let lx = null, ly = null, lz = null;
+                for (let i = 0; i <= limit; i++) {
+                    const x = posHistory[i][0] / 100, y = posHistory[i][1] / 100, z = posHistory[i][2] / 100;
+                    if (lx === null) {
+                        velHistory[i] = 0;
+                    } else {
+                        const dx = x - lx, dy = y - ly, dz = z - lz;
+                        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                        // Interval antar record = (2*25000 / TICK_MICROS) ticks × TICK_MICROS µs
+                        // = 2 * 25000 µs = 50.000 µs = 0.05 detik
+                        const TICK_RECORD = (2 * 25000) / 1000000.0; // 0.05 s
+                        velHistory[i] = Math.min(dist / TICK_RECORD, 5000);
+                    }
+                    lx = x; ly = y; lz = z;
+                }
+                currentVelocity = isFinite(velHistory[limit]) ? velHistory[limit] : 0;
+            }
+
+            if (autofollowEnabled && posHistory.length) { centerX = currentPosition.X; centerY = currentPosition.Y; viewOffsetX = viewOffsetY = 0; }
+
+            const { scale, offsetX, offsetY } = getRenderBounds();
+            const toScreen = (x, y) => ({ x: offsetX + x * scale, y: offsetY + y * scale });
+
+            let gridMinX = -50, gridMaxX = 50, gridMinY = -50, gridMaxY = 50;
+            if (posHistory.length) {
+                const bounds = posHistory.slice(0, limit + 1).reduce((a, p) => ({ minX: Math.min(a.minX, p[0] / 100), maxX: Math.max(a.maxX, p[0] / 100), minY: Math.min(a.minY, p[1] / 100), maxY: Math.max(a.maxY, p[1] / 100) }), { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
+                gridMinX = bounds.minX - 10; gridMaxX = bounds.maxX + 10; gridMinY = bounds.minY - 10; gridMaxY = bounds.maxY + 10;
+            }
+
+            ctx.strokeStyle = '#444'; ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let x = Math.floor(gridMinX / 10) * 10; x <= Math.ceil(gridMaxX / 10) * 10; x += 10) { const s = toScreen(x, 0); ctx.moveTo(s.x, 0); ctx.lineTo(s.x, h); }
+            for (let y = Math.floor(gridMinY / 10) * 10; y <= Math.ceil(gridMaxY / 10) * 10; y += 10) { const s = toScreen(0, y); ctx.moveTo(0, s.y); ctx.lineTo(w, s.y); }
+            ctx.stroke();
+
+            const colorMode = getVal('colorMode') === 'laser' ? 1 : 0;
+            maxVelocity = 0;
+            maxLaser = 0;
+            for (let i = 0; i < limit; i++) {
+                const x1 = posHistory[i][0] / 100, y1 = posHistory[i][1] / 100;
+                const x2 = posHistory[i + 1][0] / 100, y2 = posHistory[i + 1][1] / 100;
+                const avgVel = (velHistory[i] + velHistory[i + 1]) / 2;
+                const avgLas = (posHistory[i][3] + posHistory[i + 1][3]) / 2;
+                maxVelocity = Math.max(maxVelocity, isFinite(avgVel) ? avgVel : 0);
+                maxLaser = Math.max(maxLaser, isFinite(avgLas) ? avgLas : 0);
+                const s1 = toScreen(x1, y1), s2 = toScreen(x2, y2);
+                const hue = colorMode === 0 ? 100 - Math.min((avgVel / maxVelRef) * 100, 100) : (maxLaser > 0 ? 100 - (avgLas / maxLaser) * 100 : 100);
+                ctx.strokeStyle = avgLas > 0 || colorMode === 0 ? `hsl(${hue}, 80%, 50%)` : 'rgb(0, 0, 128)';
+                ctx.beginPath(); ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.stroke();
+            }
+
+            const cur = toScreen(currentPosition.X, currentPosition.Y);
+            ctx.fillStyle = '#e74c3c'; ctx.beginPath(); ctx.arc(cur.x, cur.y, 4, 0, Math.PI * 2); ctx.fill();
+
+            if (mouseTargetX != null && mouseTargetY != null) {
+                const ms = toScreen(mouseTargetX, mouseTargetY);
+                ctx.strokeStyle = ctx.fillStyle = '#f39c12';
+                ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(ms.x, ms.y, 6, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = 'rgba(243, 156, 18, 0.3)'; ctx.fill();
+                ctx.font = '10px monospace'; ctx.fillText(`(${mouseTargetX.toFixed(2)}, ${mouseTargetY.toFixed(2)})`, ms.x + 10, ms.y - 10);
+            }
+
+            if (selectedPointIndex != null && selectedPointIndex >= 0 && selectedPointIndex < posHistory.length) {
+                const p = posHistory[selectedPointIndex], x = p[0] / 100, y = p[1] / 100;
+                const s = toScreen(x, y), vel = velHistory[selectedPointIndex] || 0, power = Math.round((p[3] || 0) / 255 * 100);
+                ctx.strokeStyle = ctx.fillStyle = "#ffffff";
+                ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(s.x, s.y, 10, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = 'white'; ctx.fill();
+                ctx.font = 'bold 10px monospace'; ctx.fillText(`P/V: ${power} / ${vel.toFixed(2)}`, s.x + 15, s.y - 10);
+            }
+
+            if (jogTargetX != null && jogTargetY != null && Date.now() - jogTargetTime < 2000) {
+                const ts = toScreen(jogTargetX, jogTargetY);
+                ctx.strokeStyle = ctx.fillStyle = '#2ecc71';
+                ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(ts.x, ts.y, 8, 0, Math.PI * 2); ctx.stroke(); ctx.fillStyle = 'rgba(46, 204, 113, 0.3)'; ctx.fill();
+            } else if (Date.now() - jogTargetTime >= 2000) { jogTargetX = jogTargetY = null; }
+
+            // === RENDER FREEZE POINTS ===
+            freezePoints.forEach((fp, i) => {
+                const s = toScreen(fp.x, fp.y);
+                const ms = fp.ms;
+                const radius = Math.max(6, Math.min(18, ms / 100)); // radius sebanding durasi
+                const isActive = isFreezing && i === freezePoints.length - 1;
+
+                // Lingkaran luar (glow merah)
+                ctx.strokeStyle = isActive ? 'rgba(255,50,50,0.9)' : 'rgba(255,120,0,0.8)';
+                ctx.lineWidth = isActive ? 3 : 2;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Isi semi-transparan
+                ctx.fillStyle = isActive ? 'rgba(255,50,50,0.25)' : 'rgba(255,120,0,0.15)';
+                ctx.fill();
+
+                // Crosshair
+                ctx.strokeStyle = isActive ? '#ff3232' : '#ff7800';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(s.x - radius - 3, s.y); ctx.lineTo(s.x + radius + 3, s.y);
+                ctx.moveTo(s.x, s.y - radius - 3); ctx.lineTo(s.x, s.y + radius + 3);
+                ctx.stroke();
+
+                // Label durasi
+                ctx.font = 'bold 9px monospace';
+                ctx.fillStyle = isActive ? '#ff6666' : '#ffaa44';
+                const label = ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+                ctx.fillText(`⚠ FREEZE ${label}`, s.x + radius + 4, s.y - 3);
+                ctx.fillStyle = '#aaa';
+                ctx.font = '8px monospace';
+                ctx.fillText(`(${fp.x.toFixed(1)},${fp.y.toFixed(1)})`, s.x + radius + 4, s.y + 9);
+            });
+
+        };
+
+        const initCanvas = () => {
+            canvas = getEl('pathCanvas');
+            ctx = canvas.getContext('2d');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            const getPinchDistance = (t1, t2) => Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+
+            canvas.onmousedown = e => {
+                const jogHidden = !getEl('jogCheckbox').checked;
+                const now = Date.now(), dt = now - lastClickTime, dist = Math.hypot(e.clientX - lastClickX, e.clientY - lastClickY);
+                if (jogHidden && dt < 300 && dist < 10) { jogToPosition(e.clientX, e.clientY); lastClickTime = 0; }
+                else { isDragging = true; hasMoved = false; lastMouseX = e.clientX; lastMouseY = e.clientY; lastClickTime = now; lastClickX = e.clientX; lastClickY = e.clientY; canvas.style.cursor = 'grabbing'; }
+            };
+
+            canvas.onmousemove = e => {
+                if (!isDragging) { const t = calculateJogTarget(e.clientX, e.clientY); mouseTargetX = t && t.x; mouseTargetY = t && t.y; }
+                else if (!autofollowEnabled) { hasMoved = true; viewOffsetX += e.clientX - lastMouseX; viewOffsetY += e.clientY - lastMouseY; lastMouseX = e.clientX; lastMouseY = e.clientY; }
+            };
+
+            canvas.onmouseup = canvas.onmouseleave = () => { if (!hasMoved) selectedPointIndex = findNearestPoint(lastMouseX, lastMouseY); isDragging = false; canvas.style.cursor = 'grab'; mouseTargetX = mouseTargetY = null; };
+
+            canvas.onwheel = e => { if (autofollowEnabled) return; e.preventDefault(); const zf = e.deltaY > 0 ? 0.9 : 1.1, ns = zoomScale * zf; if (ns < 0.2 || ns > 100) return; const rect = canvas.getBoundingClientRect(), sx = canvas.width / rect.width, sy = canvas.height / rect.height, mx = (e.clientX - rect.left) * sx, my = (e.clientY - rect.top) * sy; zoomScale = ns; viewOffsetX += (1 - zf) * (mx - canvas.width / 2); viewOffsetY += (1 - zf) * (my - canvas.height / 2); renderCanvas(); };
+
+            canvas.ontouchstart = e => {
+                if (e.touches.length === 1) {
+                    const jogHidden = !getEl('jogCheckbox').checked, now = Date.now(), dt = now - lastClickTime, dist = Math.hypot(e.touches[0].clientX - lastClickX, e.touches[0].clientY - lastClickY);
+                    if (jogHidden && dt < 300 && dist < 20) { e.preventDefault(); jogToPosition(e.touches[0].clientX, e.touches[0].clientY); lastClickTime = 0; }
+                    else { isDragging = true; hasMoved = false; lastMouseX = e.touches[0].clientX; lastMouseY = e.touches[0].clientY; lastClickTime = now; lastClickX = e.touches[0].clientX; lastClickY = e.touches[0].clientY; }
+                } else if (e.touches.length === 2) { isDragging = false; initialPinchDistance = getPinchDistance(e.touches[0], e.touches[1]); }
+            };
+
+            canvas.ontouchmove = e => {
+                e.preventDefault();
+                if (e.touches.length === 1 && isDragging && !autofollowEnabled) {
+                    hasMoved = true; viewOffsetX += e.touches[0].clientX - lastMouseX; viewOffsetY += e.touches[0].clientY - lastMouseY; lastMouseX = e.touches[0].clientX; lastMouseY = e.touches[0].clientY; renderCanvas();
+                } else if (e.touches.length === 2) {
+                    const dist = getPinchDistance(e.touches[0], e.touches[1]), sc = 1 + (dist / initialPinchDistance - 1) * 0.3, ns = zoomScale * sc;
+                    if (ns >= 0.1 && ns <= 10) { const rect = canvas.getBoundingClientRect(), sx = canvas.width / rect.width, sy = canvas.height / rect.height, cx = ((e.touches[0].clientX + e.touches[1].clientX) / 2 - rect.left) * sx, cy = ((e.touches[0].clientY + e.touches[1].clientY) / 2 - rect.top) * sy; viewOffsetX += (1 - sc) * (cx - canvas.width / 2); viewOffsetY += (1 - sc) * (cy - canvas.height / 2); zoomScale = ns; initialPinchDistance = dist; renderCanvas(); }
+                }
+            };
+
+            canvas.ontouchend = e => { if (!e.touches.length && !hasMoved && e.changedTouches && e.changedTouches.length) selectedPointIndex = findNearestPoint(e.changedTouches[0].clientX, e.changedTouches[0].clientY); isDragging = false; };
+            window.onresize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; renderCanvas(); };
+        };
+
+        const pauseJob = () => wsPauseJob();
+        const resumeJob = () => wsResumeJob();
+        const stopJob = () => confirm('Stop job?') && wsStopJob();
+
+        const toggleSpindle = () => {
+            const isRouter = cfg && cfg.tool && cfg.tool.mode === 0;
+            if (isRouter) { const p = parseInt(getVal('routerPowerSlider')) || 0; setRouterPower(p > 0 ? 0 : 255); spindleEnabled = p === 0; }
+            else { spindleEnabled = !spindleEnabled; wsToggleTool(); }
+            updateSpindleDisplay();
+        };
+
+        const updateJobStatus = status => {
+            if (!status) return wsRequestJobStatus();
+            const txt = status.paused ? 'Paused' : (status.running ? 'Running' : 'Idle');
+            setTxt('jobStatus', txt); setTxt('jobFile', status.file || '-'); setTxt('jobProgress', `${status.progress}%`);
+            getEl('progressBar').style.width = `${status.progress}%`;
+            if (!status.running && lastJobRunning) { spindleEnabled = false; updateSpindleDisplay(); }
+            const wasNotRunning = !lastJobRunning;
+            lastJobRunning = jobRunning = status.running;
+            // Reset freeze data saat job baru dimulai
+            if (status.running && wasNotRunning) {
+                freezePoints = [];
+                startFreezeDetector();
+            }
+            if (!status.running) isFreezing = false;
+            getEl('btnPause').disabled = !status.running || status.paused;
+            getEl('btnResume').disabled = !status.running || !status.paused;
+            getEl('btnStop').disabled = !status.running;
+            updateJobRunningUI(status.running);
+        };
+
+
+        const openConfigModal = () => { resetAllCalcButtons(); getEl('configModal').classList.add('active'); };
+        const closeConfigModal = () => { resetAllCalcButtons(); getEl('configModal').classList.remove('active'); };
+        const resetAllCalcButtons = () => { ['X', 'Y', 'Z'].forEach(axis => { const btn = getEl(`btnCalcSteps${axis}`); if (btn) { btn.dataset.mode = 'calc'; btn.innerHTML = '🔢'; btn.title = 'Hitung ekspresi matematika koreksi (contoh: 100/102.5)'; } stepsOldValue[axis] = null; }); };
+        getEl('configModal').onclick = e => { if (e.target === getEl('configModal')) { e.stopPropagation(); closeConfigModal(); } };
+
+        const openFileActionModal = (filename, size) => { selectedFileName = filename; setTxt('fileActionFileName', filename); setTxt('fileActionFileSize', `${(size / 1024).toFixed(2)} KB`); setTxt('fileActionEstTime', 'Click to Calc Time'); getEl('fileActionModal').classList.add('active'); };
+
+        const calculateJobTime = async filename => {
+            setTxt('fileActionEstTime', 'Calculating...');
+            try {
+                const buf = await fetch(`/${filename}`).then(r => r.arrayBuffer());
+                const arr = new Uint8Array(buf);
+                const gcode = (arr.length >= 2 && String.fromCharCode(arr[0], arr[1]) === 'GX' && typeof decodeGX !== 'undefined') ? decodeGX(arr) : new TextDecoder().decode(buf);
+                const res = await loadConfig();
+                if (res && gcode) {
+                    const r = CncPlanner.calculateJobTime(gcode, res);
+                    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                    if (r.pathSegments && r.pathSegments.length > 0) {
+                        r.pathSegments.forEach(seg => {
+                            minX = Math.min(minX, seg.x1, seg.x2);
+                            maxX = Math.max(maxX, seg.x1, seg.x2);
+                            minY = Math.min(minY, seg.y1, seg.y2);
+                            maxY = Math.max(maxY, seg.y1, seg.y2);
+                        });
+                        const width = maxX - minX;
+                        const height = maxY - minY;
+                        setTxt('fileActionEstTime', `⏱ ${r.formatted} | 📐 ${(width).toFixed(1)}×${(height).toFixed(1)} mm`);
+                    } else {
+                        setTxt('fileActionEstTime', r.formatted);
+                    }
+                }
+                else setTxt('fileActionEstTime', 'Error');
+            } catch (e) { console.error(e); setTxt('fileActionEstTime', `Error: ${e.message}`); }
+        };
+
+        const closeFileActionModal = () => { getEl('fileActionModal').classList.remove('active'); selectedFileName = ''; };
+        getEl('fileActionModal').onclick = e => e.target === getEl('fileActionModal') && closeFileActionModal();
+
+        initWebSocket();
+        initCanvas();
+        loadFiles();
+        loadConfig();
+        loadJogLimit();
+        loadGlobalSpeed();
+        setInterval(updateFromPositionBuffer, 70);
+    </script>
+</body>
+
+</html>
