@@ -69,6 +69,59 @@ pio run -e esp8266 -t upload
 pio run -e esp32 -t upload
 ```
 
+## Setup Awal (Fresh Flash)
+
+Setelah flash pertama kali, LittleFS masih kosong sehingga web UI belum tersedia. Ikuti langkah berikut:
+
+1. **Flash firmware** ke mesin (lihat [Compile](#compile) dan [Flash](#flash))
+2. **Sambungkan mesin ke WiFi:**
+   - Mesin akan mencoba konek ke WiFi sesuai config (default: SSID `usaha karya`)
+   - Kalau koneksi gagal (retry ±10 detik), mesin otomatis membuka **Access Point**
+3. **Konek ke AP mode (jika WiFi gagal):**
+   - Nama AP: **CNC Machine 1** (default, bisa diganti via config `cncInfo.name`)
+   - Password: **kosong** (tanpa password)
+   - IP AP: **192.168.4.1**
+   - Konek dari HP/laptop ke AP ini, lalu buka browser ke `http://192.168.4.1/upload`
+4. **Upload file web UI** via halaman `/upload`, satu per satu:
+   - `index.html` (wajib)
+   - `cncplanner.js` (wajib)
+   - `gcodex.js` (wajib)
+   - `gcode.html`, `resume.html`, `report.html` (optional)
+5. Setelah selesai, buka `http://192.168.4.1/` untuk membuka web UI
+
+**Catatan:** Jika mesin sudah terhubung ke WiFi rumah (bukan AP mode), upload bisa dilakukan dari browser di jaringan yang sama dengan alamat `http://<ip-mesin>/upload`. IP mesin default static: `192.168.1.46` (config `wifi.lastOctet`).
+
+### Upload otomatis via curl / Python
+
+Selain manual via browser, bisa juga upload semua file `data/` sekaligus:
+
+**Linux / macOS (bash):**
+```bash
+IP=192.168.1.46
+for f in data/*; do
+    curl -s -X POST -F "name=@$f" http://$IP/upload
+done
+```
+
+**Windows (PowerShell):**
+```powershell
+$IP = "192.168.1.46"
+Get-ChildItem "data\*.*" | ForEach-Object {
+    curl.exe -s -X POST -F "name=@$($_.FullName)" http://$IP/upload
+}
+```
+
+**Python (lintas platform):**
+```python
+import requests, pathlib
+
+IP = "192.168.1.46"
+for f in pathlib.Path("data").iterdir():
+    if f.is_file():
+        r = requests.post(f"http://{IP}/upload", files={"name": (f.name, f.open("rb"))})
+        print(f.name, r.status_code)
+```
+
 ## Flash
 
 - **OTA**: target berupa IP address mesin (port 8266)
